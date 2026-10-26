@@ -1,39 +1,39 @@
-# Календарь звонков
-
+# Call Calendar
 
 [![hexlet-check](https://github.com/crraay/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/crraay/ai-for-developers-project-386/actions)
 
-Разработайте совместно с ИИ сервис для бронирования календаря
+Building a booking calendar service together with AI
 
-Учебный проект Хекслета: https://ru.hexlet.io/programs/ai-for-developers
-Как это должно работать: https://files.hexlet.app/a/2ipc5m
+How it should work: https://files.hexlet.app/a/2ipc5m
 
-## Стек
 
-- Разное
 
-## Установка
+## Tech Stack
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+TBD
+
+
+
+## Installation
+
+<!-- Describe installation: cloning, dependencies, environment variables -->
 
 ```bash
 git clone https://github.com/crraay/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
 ```
 
-## Использование
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
 
----
+## Usage
 
-<details>
-<summary>Автоматические тесты Хекслета</summary>
+TBD
 
-Тесты запускаются на каждый коммит. За запуск отвечает файл `.github/workflows/hexlet-check.yml` — не удаляйте и не переименовывайте ни его, ни репозиторий.
+<!-- Add usage examples and an asciinema recording — this is what employers look at -->
 
-</details>
 
-## О Хекслете
 
-[Хекслет](https://ru.hexlet.io/) — школа программирования: авторские программы обучения с практикой, поддержкой наставников и реальными проектами, которые остаются в резюме. Этот репозиторий — один из таких проектов.
+## Testing
+
+Tests are run automatically by Hexlet on every commit via the [`hexlet-check`](.github/workflows/hexlet-check.yml) GitHub Actions workflow.
+
