@@ -10,7 +10,9 @@ How it should work: https://files.hexlet.app/a/2ipc5m
 
 ## Tech Stack
 
-TBD
+Angular (frontend) · Java 21 + Micronaut (backend) · PostgreSQL · Docker Compose
+
+See [ADR-0001](docs/adr/0001-tech-stack.md) for why this stack was chosen.
 
 
 
