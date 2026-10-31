@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: com.callcalendar
+testFramework: junit
+sourceLanguage: java
+buildTool: gradle
+features: [app-name, gitignore, gradle, http-client-test, java, java-application, jdbc-hikari, jul-to-slf4j, junit, liquibase, logback, micronaut-aot, micronaut-build, micronaut-configuration-validation-gradle-plugin, micronaut-http-validation, netty-server, postgres, properties, readme, serialization-jackson, shade, static-resources, test-resources, testcontainers]
