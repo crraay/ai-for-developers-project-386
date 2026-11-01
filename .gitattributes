@@ -1,3 +1,7 @@
 * text=auto
 gradlew text eol=lf
 *.sh text eol=lf
+# Generated files: committed and CI-verified for freshness, so line endings must
+# not depend on the checkout platform
+openapi/** text eol=lf
+frontend/src/app/api/** text eol=lf
