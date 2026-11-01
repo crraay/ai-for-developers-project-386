@@ -1,0 +1,8 @@
+# Dev-only transitive vuln via eslint / typescript-eslint lint tooling (not shipped).
+# No compatible upgrade until those tools move to minimatch 11; forcing it via npm
+# overrides risks breaking eslint. The ignoreUntil date makes this suppression
+# self-expiring: osv-scanner starts failing again after it passes.
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2026-12-01
+reason = "dev-only transitive dep of eslint/typescript-eslint; upgrade path is upstream's move to minimatch 11"

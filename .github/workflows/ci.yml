@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push: # every push, any branch
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+
+      - name: Install JS dependencies (root = commitlint, frontend = app)
+        run: |
+          npm ci
+          npm --prefix frontend ci
+
+      # The one gate: everything a developer runs locally. Includes the
+      # generated-code freshness gate (regenerates spec + client, fails on diff).
+      - name: mise run check
+        run: mise run check
+
+      - name: Conventional Commits on the pushed range
+        if: github.event.before != '0000000000000000000000000000000000000000'
+        run: npx commitlint --from=${{ github.event.before }} --to=${{ github.sha }}
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build and start the stack
+        run: docker compose up --build -d
+
+      - name: Backend answers ping
+        run: |
+          body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping)
+          test "$body" = "pong"
+
+      - name: Frontend serves the app
+        run: curl -fsS http://localhost:4200 | grep -q "<app-root>"
+
+      - name: Spec and Swagger UI are served
+        run: |
+          curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3"
+          curl -fsS http://localhost:8080/swagger-ui/ | grep -qi "swagger-ui"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
