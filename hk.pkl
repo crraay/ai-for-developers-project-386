@@ -1,4 +1,5 @@
 amends "package://github.com/jdx/hk/releases/download/v2.10.0/hk@2.10.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.10.0/hk@2.10.0#/Builtins.pkl"
 
 min_hk_version = "2.10.0"
 
@@ -12,6 +13,9 @@ exclude = List(".agents")
 // commitlint) are on PATH inside hooks. Custom steps call plain binaries, so
 // no POSIX shell is needed on Windows.
 steps {
+  // exec bits live in the git index, not the Windows filesystem — this is the
+  // only thing that catches a 100644 gradlew before Linux CI dies on it
+  ["check_shebang_scripts_are_executable"] = Builtins.check_shebang_scripts_are_executable
   ["typos"] {
     check = "typos {{files}}"
   }
