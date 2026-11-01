@@ -11,10 +11,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Controller("/api")
 public class PingController {
 
-    @Get("/ping")
-    @Produces(MediaType.TEXT_PLAIN)
-    @Operation(summary = "Connectivity check used to prove frontend/backend wiring", operationId = "ping")
-    public String ping() {
-        return "pong";
-    }
+  @Get("/ping")
+  @Produces(MediaType.TEXT_PLAIN)
+  @Operation(
+      summary = "Connectivity check used to prove frontend/backend wiring",
+      operationId = "ping")
+  public String ping() {
+    return "pong";
+  }
 }

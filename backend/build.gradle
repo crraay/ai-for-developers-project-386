@@ -1,7 +1,12 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
+
 plugins {
     id("io.micronaut.application") version "5.0.2"
     id("com.gradleup.shadow") version "9.4.1"
     id("io.micronaut.aot") version "5.0.2"
+    id("net.ltgt.errorprone") version "5.1.1"
+    id("net.ltgt.nullaway") version "3.2.0"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 version = "0.1"
@@ -31,6 +36,8 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    errorprone("com.google.errorprone:error_prone_core:2.51.0")
+    errorprone("com.uber.nullaway:nullaway:0.14.3")
 }
 
 
@@ -47,6 +54,24 @@ java {
 // Needed so micronaut-openapi sees real parameter names in the generated spec
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add("-parameters")
+    options.errorprone {
+        disableWarningsInGeneratedCode = true
+        nullaway {
+            severity = CheckSeverity.ERROR
+        }
+    }
+}
+
+nullaway {
+    annotatedPackages = "com.callcalendar"
+}
+
+spotless {
+    java {
+        // 1.37.0 crashes inside Spotless's in-daemon invocation on JDK 25
+        // (InvocationTargetException on every file); 1.36.1 works. Retest before upgrading.
+        googleJavaFormat("1.36.1")
+    }
 }
 
 // Copies the generated OpenAPI spec to the repo-level openapi/ dir (committed;
