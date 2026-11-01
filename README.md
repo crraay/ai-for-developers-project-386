@@ -40,6 +40,7 @@ docker compose up --build
 
 - Frontend: http://localhost:4200
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
+- Swagger UI: http://localhost:8080/swagger-ui/ (raw spec: `/swagger/call-calendar-0.1.yml`)
 - PostgreSQL: localhost:5434 (`postgres`/`postgres`, db `callcalendar`; 5432 is used by a local PostgreSQL install on this machine)
 
 Local development without Docker:
@@ -57,12 +58,40 @@ cd frontend && mise exec -- npm start
 
 ## Testing
 
-Tests are run automatically by Hexlet on every commit via the [`hexlet-check`](.github/workflows/hexlet-check.yml) GitHub Actions workflow.
+Tests are run automatically by Hexlet on every commit via the [`hexlet-check`](.github/workflows/hexlet-check.yml) GitHub Actions workflow. This repo's own [`ci.yml`](.github/workflows/ci.yml) additionally runs the full quality gate on every push.
 
-Run them locally:
+The one command that runs everything (all linters, all tests, the OpenAPI spec lint, repo hygiene checks, and the generated-code freshness gate):
+
+```bash
+mise run check
+```
+
+Other tasks:
+
+```bash
+mise run fix        # apply safe autofixes (spotless, eslint, stylelint, prettier)
+mise run generate   # regenerate openapi/api.yml + the frontend API client
+mise run smoke      # docker compose stack end-to-end check (needs Docker)
+```
+
+Git hooks (fast pre-commit tier + commit-msg lint + pre-push `mise run check`)
+are managed by hk; once per clone:
+
+```bash
+hk install --mise
+```
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org)
+(enforced by commitlint in the commit-msg hook and in CI).
+
+Run individual test suites locally:
 
 ```bash
 cd backend && mise exec -- ./gradlew test   # JUnit 5 + Testcontainers PostgreSQL
 cd frontend && mise exec -- npm test -- --watch=false   # Vitest
 ```
+
+The frontend never calls the API through hand-written URLs: the typed client in
+`frontend/src/app/api/` is generated from `openapi/api.yml` (exported from the
+backend's Micronaut annotations) — see [ADR-0003](docs/adr/0003-openapi-code-first-ng-openapi-gen.md).
 
