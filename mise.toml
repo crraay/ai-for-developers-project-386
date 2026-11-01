@@ -105,21 +105,9 @@ depends = ["fix:backend", "fix:frontend"]
 
 [tasks.smoke]
 description = "Build the compose stack, verify backend + frontend + Swagger UI, tear down"
-run = """
-set -e
-trap 'docker compose down -v' EXIT
-docker compose up --build -d
-body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping)
-test "$body" = "pong"
-curl -fsS http://localhost:4200 | grep -q "<app-root>"
-curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3"
-curl -fsS http://localhost:8080/swagger-ui/ | grep -qi "swagger-ui"
-"""
-run_windows = """
-docker compose up --build -d || exit /b 1
-curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul || exit /b 1
-curl -fsS http://localhost:4200 | findstr /c:"app-root" >nul || exit /b 1
-curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul || exit /b 1
-curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul || exit /b 1
-docker compose down -v || exit /b 1
-"""
+# Single-line scripts: multi-line `run_windows` executes only its first line
+# (mise on Windows/cmd, verified empirically), so both variants chain with &&.
+# On assertion failure the stack is left running for inspection (CI has its own
+# inline smoke steps with `if: always()` teardown).
+run = """trap 'docker compose down -v' EXIT; docker compose up --build -d && body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping) && test "$body" = "pong" && curl -fsS http://localhost:4200 | grep -q "<app-root>" && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3" && curl -fsS http://localhost:8080/swagger-ui/ | grep -qi swagger-ui"""
+run_windows = """docker compose up --build -d && curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul && curl -fsS http://localhost:4200 | findstr /c:"<app-root>" >nul && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul && curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul && docker compose down -v"""
