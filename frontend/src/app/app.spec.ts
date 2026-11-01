@@ -10,7 +10,11 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideApiConfiguration('http://localhost:8080')],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideApiConfiguration('http://localhost:8080'),
+      ],
     }).compileComponents();
     httpTesting = TestBed.inject(HttpTestingController);
   });

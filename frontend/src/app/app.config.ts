@@ -9,6 +9,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideHttpClient(),
     provideRouter(routes),
-    provideApiConfiguration('http://localhost:8080')
-  ]
+    provideApiConfiguration('http://localhost:8080'),
+  ],
 };

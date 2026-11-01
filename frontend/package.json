@@ -7,7 +7,11 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "generate:api": "ng-openapi-gen && prettier --write \"src/app/api/**/*.ts\" --log-level warn"
+    "generate:api": "ng-openapi-gen && prettier --write \"src/app/api/**/*.ts\" --log-level warn",
+    "lint": "ng lint",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint:scss": "stylelint \"src/**/*.scss\""
   },
   "private": true,
   "packageManager": "npm@11.19.1",
@@ -25,10 +29,16 @@
     "@angular/build": "^22.2.5",
     "@angular/cli": "^22.2.5",
     "@angular/compiler-cli": "^22.2.0",
+    "@eslint/js": "^10.0.1",
+    "angular-eslint": "^22.6.0",
+    "eslint": "^10.14.0",
     "jsdom": "^30.0.0",
     "ng-openapi-gen": "^1.1.0",
     "prettier": "^3.8.1",
+    "stylelint": "^17.16.0",
+    "stylelint-config-standard-scss": "^17.0.0",
     "typescript": "~6.0.2",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.0"
   }
 }
