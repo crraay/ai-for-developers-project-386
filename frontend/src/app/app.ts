@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { RouterOutlet } from '@angular/router';
+import { Api } from './api/api';
+import { ping as pingOperation } from './api/fn/ping/ping';
 
 @Component({
   imports: [RouterOutlet],
@@ -9,15 +10,13 @@ import { RouterOutlet } from '@angular/router';
   templateUrl: './app.html',
 })
 export class App {
-  private readonly http = inject(HttpClient);
+  private readonly api = inject(Api);
   protected readonly ping = signal('…');
 
   constructor() {
-    this.http
-      .get('http://localhost:8080/api/ping', { responseType: 'text' })
-      .subscribe({
-        next: (body) => this.ping.set(body),
-        error: () => this.ping.set('backend unreachable'),
-      });
+    this.api.invoke(pingOperation).subscribe({
+      next: (body) => this.ping.set(body),
+      error: () => this.ping.set('backend unreachable'),
+    });
   }
 }

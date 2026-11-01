@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { App } from './app';
+import { provideApiConfiguration } from './api/api-configuration';
 
 describe('App', () => {
   let httpTesting: HttpTestingController;
@@ -9,7 +10,7 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideApiConfiguration('http://localhost:8080')],
     }).compileComponents();
     httpTesting = TestBed.inject(HttpTestingController);
   });
