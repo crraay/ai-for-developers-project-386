@@ -1,7 +1,9 @@
 # Generated files and lockfiles are not spell-checked: they change only via
-# generators/package managers, never by hand.
+# generators/package managers, never by hand. `.agents/` is vendored skill
+# content (installed upstream), likewise not ours to fix.
 [files]
 extend-exclude = [
+  ".agents/**",
   "frontend/src/app/api",
   "openapi/api.yml",
   "package-lock.json",

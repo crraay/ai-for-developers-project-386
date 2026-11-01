@@ -1,10 +1,125 @@
 [tools]
 java = "temurin-25"
 node = "24"
-hk = "2.4.0"
+hk = "2.10.0"
 typos = "1.51.1"
 betterleaks = "1.9.0"
 hadolint = "2.15.1"
 jactionlint = "2.4.0"
+shellcheck = "0.11.0" # jactionlint delegates workflow shell blocks to it
 vacuum = "0.36.1"
 osv-scanner = "2.7.0"
+
+# Expose repo-local npm tools (commitlint at root; prettier/eslint/stylelint in
+# frontend/) to mise tasks and hk hooks.
+[env]
+_.path = ["node_modules/.bin", "frontend/node_modules/.bin"]
+
+# ---------------------------------------------------------------------------
+# Checks. `mise run check` runs everything; CI runs exactly this command.
+# ---------------------------------------------------------------------------
+
+[tasks."check:backend"]
+description = "Spotless format gate, compile (Error Prone + NullAway), JUnit + Testcontainers"
+dir = "backend"
+run = "./gradlew spotlessCheck test"
+run_windows = "gradlew.bat spotlessCheck test"
+
+[tasks."check:frontend"]
+description = "eslint (TS + templates), prettier, stylelint, Vitest, production build"
+dir = "frontend"
+run = [
+  "npm run lint",
+  "npm run format:check",
+  "npm run lint:scss",
+  "npm test -- --watch=false",
+  "npm run build",
+]
+
+[tasks."check:contracts"]
+description = "Lint the OpenAPI spec (vacuum)"
+run = "vacuum lint openapi/api.yml"
+
+[tasks."check:repo"]
+description = "Repo hygiene: typos, secrets, Dockerfiles, workflow lint"
+run = [
+  "typos",
+  "betterleaks dir --config .betterleaks.toml .",
+  "hadolint backend/Dockerfile frontend/Dockerfile",
+  # Fixed file list on purpose: hexlet-check.yml is managed externally and must
+  # not be edited, so it is excluded by omission rather than by an ignore rule.
+  "jactionlint .github/workflows/ci.yml .github/workflows/security.yml",
+]
+
+[tasks.check]
+description = "Every check: backend, frontend, contracts, repo hygiene, generated-code freshness"
+depends = ["check:backend", "check:frontend", "check:contracts", "check:repo"]
+# runs only when all four pass: regenerate and verify committed output is fresh
+run = "mise run check:generated"
+
+[tasks."check:generated"]
+description = "Fail if committed generated files (openapi/api.yml, frontend/src/app/api) are stale"
+depends = ["generate"]
+run = "git diff --exit-code -- openapi frontend/src/app/api"
+
+# ---------------------------------------------------------------------------
+# Generation
+# ---------------------------------------------------------------------------
+
+[tasks."generate:spec"]
+description = "Regenerate openapi/api.yml from the backend annotations"
+dir = "backend"
+run = "./gradlew exportOpenApi"
+run_windows = "gradlew.bat exportOpenApi"
+
+[tasks."generate:client"]
+description = "Regenerate the Angular client from openapi/api.yml"
+dir = "frontend"
+depends = ["generate:spec"]
+run = "npm run generate:api"
+
+[tasks.generate]
+description = "Regenerate the OpenAPI spec and the frontend API client"
+depends = ["generate:client"]
+
+# ---------------------------------------------------------------------------
+# Autofix
+# ---------------------------------------------------------------------------
+
+[tasks."fix:backend"]
+dir = "backend"
+run = "./gradlew spotlessApply"
+run_windows = "gradlew.bat spotlessApply"
+
+[tasks."fix:frontend"]
+dir = "frontend"
+run = ["npm run lint -- --fix", "npm run lint:scss -- --fix", "npm run format:write"]
+
+[tasks.fix]
+description = "Apply every safe autofix (spotlessApply, eslint --fix, stylelint --fix, prettier)"
+depends = ["fix:backend", "fix:frontend"]
+
+# ---------------------------------------------------------------------------
+# Smoke (needs Docker)
+# ---------------------------------------------------------------------------
+
+[tasks.smoke]
+description = "Build the compose stack, verify backend + frontend + Swagger UI, tear down"
+run = """
+set -e
+trap 'docker compose down -v' EXIT
+docker compose up --build -d
+body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping)
+test "$body" = "pong"
+curl -fsS http://localhost:4200 | grep -q "<app-root>"
+curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3"
+curl -fsS http://localhost:8080/swagger-ui/ | grep -qi "swagger-ui"
+"""
+run_windows = """
+docker compose up --build -d || exit /b 1
+curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul || exit /b 1
+curl -fsS http://localhost:4200 | findstr /c:"app-root" >nul || exit /b 1
+curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul || exit /b 1
+curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul || exit /b 1
+docker compose down -v || exit /b 1
+"""

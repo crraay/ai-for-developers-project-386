@@ -1,0 +1,54 @@
+amends "package://github.com/jdx/hk/releases/download/v2.10.0/hk@2.10.0#/Config.pkl"
+
+min_hk_version = "2.10.0"
+
+// Vendored skill content (installed upstream) — not ours to lint or fix.
+exclude = List(".agents")
+
+// Fast checks on staged files. Top-level `steps` create the check, fix and
+// pre-commit hooks (pre-commit fixes + stages, stashing unstaged work).
+// Tool resolution: hk is installed via `hk install --mise`, so mise tools
+// (typos, betterleaks) and node_modules/.bin (via mise [env] _.path: prettier,
+// commitlint) are on PATH inside hooks. Custom steps call plain binaries, so
+// no POSIX shell is needed on Windows.
+steps {
+  ["typos"] {
+    check = "typos {{files}}"
+  }
+  ["betterleaks"] {
+    // explicit file args don't trigger config auto-discovery — pass it
+    check = "betterleaks dir --config .betterleaks.toml {{files}}"
+  }
+  ["prettier"] {
+    glob = List(
+      "frontend/**/*.ts",
+      "frontend/**/*.html",
+      "frontend/**/*.scss",
+      "frontend/**/*.json",
+      "frontend/**/*.md"
+    )
+    // generated client: formatted by `npm run generate:api`, never by hand
+    exclude = List("frontend/src/app/api/**")
+    check = "prettier --check {{files}}"
+    fix = "prettier --write {{files}}"
+  }
+}
+
+hooks {
+  ["commit-msg"] {
+    steps {
+      ["commitlint"] {
+        check = "commitlint --edit {{ commit_msg_file }}"
+      }
+    }
+  }
+  // Whole-project tier: everything `mise run check` covers. CI runs the same
+  // command, so the hook cannot drift from the gate. Bypass: git push --no-verify.
+  ["pre-push"] {
+    steps {
+      ["check"] {
+        check = "mise run check"
+      }
+    }
+  }
+}
