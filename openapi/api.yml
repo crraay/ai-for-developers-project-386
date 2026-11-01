@@ -1,0 +1,18 @@
+openapi: 3.0.1
+info:
+  title: call-calendar
+  version: "0.1"
+paths:
+  /api/ping:
+    get:
+      tags:
+      - ping
+      summary: Connectivity check used to prove frontend/backend wiring
+      operationId: ping
+      responses:
+        "200":
+          description: ping 200 response
+          content:
+            text/plain:
+              schema:
+                type: string
