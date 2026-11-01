@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## Working in this repo
+
+Run at most one build command at a time per directory (`gradlew`, `npm`, `docker compose`) — a second concurrent build corrupts shared build/test state.
+
 ## Agent skills
 
 ### Issue tracker
