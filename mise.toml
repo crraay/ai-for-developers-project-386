@@ -1,3 +1,10 @@
 [tools]
 java = "temurin-25"
 node = "24"
+hk = "2.4.0"
+typos = "1.51.1"
+betterleaks = "1.9.0"
+hadolint = "2.15.1"
+jactionlint = "2.4.0"
+vacuum = "0.36.1"
+osv-scanner = "2.7.0"

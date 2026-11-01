@@ -1,7 +1,14 @@
 openapi: 3.0.1
 info:
   title: call-calendar
+  description: "Booking calendar API: hosts publish availability, guests book call\
+    \ slots."
   version: "0.1"
+servers:
+- url: /
+tags:
+- name: ping
+  description: Connectivity check
 paths:
   /api/ping:
     get:

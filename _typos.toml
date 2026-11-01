@@ -1,0 +1,10 @@
+# Generated files and lockfiles are not spell-checked: they change only via
+# generators/package managers, never by hand.
+[files]
+extend-exclude = [
+  "frontend/src/app/api",
+  "openapi/api.yml",
+  "package-lock.json",
+  "frontend/package-lock.json",
+  "mise.lock",
+]

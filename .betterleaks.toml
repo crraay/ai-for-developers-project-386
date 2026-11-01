@@ -1,0 +1,30 @@
+title = "call-calendar"
+
+[extend]
+useDefault = true
+
+# Hygiene: build outputs, dependencies, generated files and lockfiles are not scanned.
+[[allowlists]]
+description = "Non-source paths"
+paths = [
+  '''backend/build/''',
+  '''frontend/dist/''',
+  '''frontend/\.angular/''',
+  '''node_modules/''',
+  # generated and committed; changes only ever come from the generators
+  '''frontend/src/app/api/''',
+  '''openapi/api\.yml''',
+  # lockfiles
+  '''package-lock\.json''',
+  '''mise\.lock''',
+]
+
+# The compose stack uses well-known dev-only credentials for the local PostgreSQL
+# container; never used outside local dev. Scoped to secret="postgres" in
+# docker-compose.yml only, so a real secret in that file still fails the scan.
+# (review 2027-02-01)
+[[allowlists]]
+description = "Dev-only compose credentials"
+regexTarget = "secret"
+regexes = ['''^postgres$''']
+paths = ['''docker-compose\.yml''']

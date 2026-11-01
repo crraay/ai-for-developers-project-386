@@ -1,0 +1,9 @@
+{
+  "name": "call-calendar",
+  "private": true,
+  "description": "Root package for repo-level JS tooling (commitlint). Apps live in backend/ and frontend/.",
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4"
+  }
+}
