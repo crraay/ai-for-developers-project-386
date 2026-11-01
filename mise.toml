@@ -106,7 +106,8 @@ depends = ["fix:backend", "fix:frontend"]
 [tasks.smoke]
 description = "Build the compose stack, verify backend + frontend + Swagger UI, tear down"
 # Single-line scripts: multi-line `run_windows` executes only its first line
-# (mise on Windows/cmd, verified empirically), so both variants chain with &&.
+# (mise on Windows/cmd, verified empirically; filed as jdx/mise#15231),
+# so both variants chain with &&.
 # On assertion failure the stack is left running for inspection (CI has its own
 # inline smoke steps with `if: always()` teardown).
 run = """trap 'docker compose down -v' EXIT; docker compose up --build -d && body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping) && test "$body" = "pong" && curl -fsS http://localhost:4200 | grep -q "<app-root>" && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3" && curl -fsS http://localhost:8080/swagger-ui/ | grep -qi swagger-ui"""
