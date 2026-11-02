@@ -72,8 +72,12 @@ run = "git diff --exit-code -- openapi frontend/src/app/api"
 [tasks."generate:spec"]
 description = "Regenerate openapi/api.yml from the backend annotations"
 dir = "backend"
-run = "./gradlew exportOpenApi"
-run_windows = "gradlew.bat exportOpenApi"
+# Clean-room on purpose: against a warm build Gradle reports exportOpenApi
+# UP-TO-DATE and reproduces the stale committed output, so check:generated
+# passed against the very staleness it exists to catch (CI caught it
+# 2026-11-02 on a pristine checkout).
+run = "./gradlew clean exportOpenApi"
+run_windows = "gradlew.bat clean exportOpenApi"
 
 [tasks."generate:client"]
 description = "Regenerate the Angular client from openapi/api.yml"
