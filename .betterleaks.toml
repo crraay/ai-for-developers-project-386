@@ -8,6 +8,9 @@ useDefault = true
 description = "Non-source paths"
 paths = [
   '''backend/build/''',
+  # gitignored Gradle cache; its lock files are held mid-build on Windows, so
+  # scanning them races check:backend
+  '''backend/\.gradle/''',
   '''frontend/dist/''',
   '''frontend/\.angular/''',
   '''node_modules/''',
