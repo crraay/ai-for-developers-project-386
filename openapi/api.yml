@@ -209,6 +209,8 @@ components:
           type: string
         guestEmail:
           type: string
+      description: Body of POST /api/bookings. Fields are nullable because input is
+        untrusted.
     HostSettingsResponse:
       required:
       - allowedDurations
@@ -222,6 +224,8 @@ components:
           items:
             type: integer
             format: int32
+      description: "Public host settings the guest UI needs: timezone label + allowed\
+        \ durations."
     ProblemDetail:
       required:
       - detail
@@ -239,3 +243,4 @@ components:
           format: int32
         detail:
           type: string
+      description: RFC 7807 problem detail; served as application/problem+json.
