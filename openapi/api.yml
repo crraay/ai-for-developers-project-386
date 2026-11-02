@@ -9,7 +9,114 @@ servers:
 tags:
 - name: ping
   description: Connectivity check
+- name: slots
+  description: Browsing available slots
+- name: booking
+  description: Booking and cancelling slots
+- name: host-settings
+  description: Public host settings
 paths:
+  /api/bookings:
+    post:
+      tags:
+      - booking
+      summary: Book an available slot
+      operationId: createBooking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingRequest"
+        required: true
+      responses:
+        "201":
+          description: Booking created; cancellationToken unlocks UC-4
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResponse"
+        "400":
+          description: Malformed body or disallowed duration
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: "Slot no longer available (taken, past, too soon, or outside\
+            \ availability)"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/bookings/{token}:
+    get:
+      tags:
+      - booking
+      summary: Booking details by secret cancellation token
+      operationId: getBooking
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: The booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResponse"
+        "404":
+          description: No booking for this token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/bookings/{token}/cancel:
+    post:
+      tags:
+      - booking
+      summary: Cancel a booking via its secret token
+      operationId: cancelBooking
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: "The booking, now cancelled; the slot is free again"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResponse"
+        "404":
+          description: No booking for this token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: The booking has started and can no longer be cancelled
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/host-settings:
+    get:
+      tags:
+      - host-settings
+      summary: "Public host settings: timezone and allowed booking durations"
+      operationId: getHostSettings
+      responses:
+        "200":
+          description: Host settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostSettingsResponse"
   /api/ping:
     get:
       tags:
@@ -23,3 +130,112 @@ paths:
             text/plain:
               schema:
                 type: string
+  /api/slots:
+    get:
+      tags:
+      - slots
+      summary: Available slot start times for a host-local day
+      operationId: getSlots
+      parameters:
+      - name: date
+        in: query
+        required: true
+        explode: false
+        schema:
+          type: string
+      - name: durationMinutes
+        in: query
+        required: true
+        explode: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Slot start times as UTC instants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: date-time
+        "400":
+          description: Malformed date or disallowed duration
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+components:
+  schemas:
+    BookingResponse:
+      required:
+      - cancellationToken
+      - end
+      - guestEmail
+      - guestName
+      - start
+      - state
+      type: object
+      properties:
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        state:
+          type: string
+        cancellationToken:
+          type: string
+    CreateBookingRequest:
+      required:
+      - durationMinutes
+      - guestEmail
+      - guestName
+      - start
+      type: object
+      properties:
+        start:
+          type: string
+        durationMinutes:
+          type: integer
+          format: int32
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+    HostSettingsResponse:
+      required:
+      - allowedDurations
+      - timezone
+      type: object
+      properties:
+        timezone:
+          type: string
+        allowedDurations:
+          type: array
+          items:
+            type: integer
+            format: int32
+    ProblemDetail:
+      required:
+      - detail
+      - status
+      - title
+      - type
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string

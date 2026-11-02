@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <!-- Walking skeleton: host settings, recurring window, booking (+ the
+       exclusion constraint enforcing the no-double-booking invariant) and the
+       seeded data the milestone runs on. -->
+
+  <changeSet id="02-btree-gist-extension" author="callcalendar">
+    <sql>CREATE EXTENSION IF NOT EXISTS btree_gist;</sql>
+  </changeSet>
+
+  <changeSet id="03-host-settings" author="callcalendar">
+    <createTable tableName="host_settings">
+      <column name="id" type="INT">
+        <constraints primaryKey="true" primaryKeyName="host_settings_pkey"/>
+      </column>
+      <column name="timezone" type="VARCHAR(64)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="allowed_duration_minutes" type="INT[]">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <sql>ALTER TABLE host_settings ADD CONSTRAINT host_settings_single_row CHECK (id = 1);</sql>
+  </changeSet>
+
+  <changeSet id="04-recurring-window" author="callcalendar">
+    <createTable tableName="recurring_window">
+      <column name="id" type="BIGSERIAL">
+        <constraints primaryKey="true" primaryKeyName="recurring_window_pkey"/>
+      </column>
+      <column name="dtstart_local" type="TIMESTAMP WITHOUT TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="dtend_local" type="TIMESTAMP WITHOUT TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="rrule" type="TEXT">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <sql>ALTER TABLE recurring_window ADD CONSTRAINT recurring_window_end_after_start CHECK (dtend_local &gt; dtstart_local);</sql>
+    <!-- v1: an occurrence never crosses midnight (docs/domain.md) -->
+    <sql>ALTER TABLE recurring_window ADD CONSTRAINT recurring_window_same_day CHECK (dtend_local::date = dtstart_local::date);</sql>
+  </changeSet>
+
+  <changeSet id="05-booking" author="callcalendar">
+    <createTable tableName="booking">
+      <column name="id" type="BIGSERIAL">
+        <constraints primaryKey="true" primaryKeyName="booking_pkey"/>
+      </column>
+      <column name="guest_name" type="VARCHAR(200)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="guest_email" type="VARCHAR(320)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="start_at" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="end_at" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="state" type="VARCHAR(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="cancellation_token" type="VARCHAR(32)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="booking_cancellation_token_key"/>
+      </column>
+    </createTable>
+    <sql>ALTER TABLE booking ADD CONSTRAINT booking_state_check CHECK (state IN ('active', 'cancelled'));</sql>
+    <sql>ALTER TABLE booking ADD CONSTRAINT booking_end_after_start CHECK (end_at &gt; start_at);</sql>
+    <!-- ADR-0006: at most one ACTIVE booking covers any instant; first commit
+         wins, the loser gets a 23P01 violation translated to 409. -->
+    <sql>ALTER TABLE booking ADD CONSTRAINT booking_no_active_overlap EXCLUDE USING gist (tstzrange(start_at, end_at, '[)') WITH =) WHERE (state = 'active');</sql>
+  </changeSet>
+
+  <changeSet id="06-seed-walking-skeleton" author="callcalendar">
+    <sql>INSERT INTO host_settings (id, timezone, allowed_duration_minutes) VALUES (1, 'Europe/Berlin', '{30}'::int[]);</sql>
+    <!-- 2026-01-05 is a Monday: Mon-Fri 09:00-17:00 host-local -->
+    <sql>INSERT INTO recurring_window (dtstart_local, dtend_local, rrule) VALUES (TIMESTAMP '2026-01-05 09:00:00', TIMESTAMP '2026-01-05 17:00:00', 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;WKST=MO');</sql>
+  </changeSet>
+</databaseChangeLog>

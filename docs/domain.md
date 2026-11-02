@@ -8,7 +8,9 @@ scope per `docs/product.md`.
 - **Host settings** (single row): timezone (IANA, e.g. `Europe/Berlin`),
   allowed durations (a subset of 15 / 30 / 60 minutes).
 - **Recurring window**: day(s) of week + time-of-day range, expressed as an
-  rrule; repeats indefinitely.
+  rrule; repeats indefinitely. v1 constraint: an occurrence never crosses
+  midnight — its end is its start plus the window length, computed on the
+  host-local clock.
 - **One-off window**: a concrete date + start/end time.
 - **Blackout**: a concrete date or date+time interval.
 - **Booking**: guest name, guest email, start, end (stored in UTC), state

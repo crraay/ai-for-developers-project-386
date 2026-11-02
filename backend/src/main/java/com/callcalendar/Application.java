@@ -14,7 +14,12 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
             version = "0.1",
             description =
                 "Booking calendar API: hosts publish availability, guests book call slots."),
-    tags = {@Tag(name = "ping", description = "Connectivity check")},
+    tags = {
+      @Tag(name = "ping", description = "Connectivity check"),
+      @Tag(name = "slots", description = "Browsing available slots"),
+      @Tag(name = "booking", description = "Booking and cancelling slots"),
+      @Tag(name = "host-settings", description = "Public host settings")
+    },
     servers = {@Server(url = "/")})
 public class Application {
 
