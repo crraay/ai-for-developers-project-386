@@ -60,6 +60,9 @@ run = "mise run check:generated"
 [tasks."check:generated"]
 description = "Fail if committed generated files (openapi/api.yml, frontend/src/app/api) are stale"
 depends = ["generate"]
+# The gate is `git diff` (worktree vs index): it passes only once freshly
+# generated output is staged — `git add openapi frontend/src/app/api` after
+# `mise run generate`.
 run = "git diff --exit-code -- openapi frontend/src/app/api"
 
 # ---------------------------------------------------------------------------
@@ -110,5 +113,5 @@ description = "Build the compose stack, verify backend + frontend + Swagger UI, 
 # so both variants chain with &&.
 # On assertion failure the stack is left running for inspection (CI has its own
 # inline smoke steps with `if: always()` teardown).
-run = """trap 'docker compose down -v' EXIT; docker compose up --build -d && body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping) && test "$body" = "pong" && curl -fsS http://localhost:4200 | grep -q "<app-root>" && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3" && curl -fsS http://localhost:8080/swagger-ui/ | grep -qi swagger-ui"""
-run_windows = """docker compose up --build -d && curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul && curl -fsS http://localhost:4200 | findstr /c:"<app-root>" >nul && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul && curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul && docker compose down -v"""
+run = """trap 'docker compose down -v' EXIT; docker compose up --build -d && body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping) && test "$body" = "pong" && curl -fsS http://localhost:4200 | grep -q "<app-root>" && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3" && curl -fsS http://localhost:8080/swagger-ui/ | grep -qi swagger-ui && bash scripts/smoke-booking.sh"""
+run_windows = """docker compose up --build -d && curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul && curl -fsS http://localhost:4200 | findstr /c:"<app-root>" >nul && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul && curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-booking.ps1 && docker compose down -v"""

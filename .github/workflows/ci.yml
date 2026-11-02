@@ -58,6 +58,9 @@ jobs:
           curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3"
           curl -fsS http://localhost:8080/swagger-ui/ | grep -qi "swagger-ui"
 
+      - name: Booking round trip (slots -> book -> cancel)
+        run: bash scripts/smoke-booking.sh
+
       - name: Dump logs on failure
         if: failure()
         run: docker compose logs
