@@ -1,0 +1,31 @@
+<section class="page">
+  <h2>Confirm your booking</h2>
+  <p class="summary">{{ formatDateTime(start) }} · {{ durationMinutes }} minutes</p>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  <form #bookingForm="ngForm" (ngSubmit)="submit()">
+    <label class="field">
+      <span class="field-label">Your name</span>
+      <input type="text" name="guestName" [(ngModel)]="guestName" autocomplete="name" required />
+    </label>
+    <label class="field">
+      <span class="field-label">Your email</span>
+      <input
+        type="email"
+        name="guestEmail"
+        [(ngModel)]="guestEmail"
+        autocomplete="email"
+        required
+        email
+      />
+    </label>
+    <button class="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
+      Confirm booking
+    </button>
+  </form>
+
+  <p><a routerLink="/">Pick another time</a></p>
+</section>
