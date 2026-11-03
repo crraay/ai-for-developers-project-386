@@ -10,7 +10,7 @@ The agent shell is PowerShell: use `curl.exe` for real curl flags (`curl` aliase
 
 The agent shell reports a spurious "exit code 1" whenever a command writes to stderr (docker, gradle, npm, hk all do) — trust command output and explicit markers (e.g. `BUILD SUCCESSFUL`), never the wrapper's exit code.
 
-`mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness) and must pass before a change is done; CI runs the same command on every push. `mise run fix` applies the safe autofixes.
+`mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness) and must pass before a change is done; CI runs the same command on every push. There is no pre-push hook — run it yourself. `mise run fix` applies the safe autofixes.
 
 Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. Change the source (backend annotations / `ng-openapi-gen.json`) and run `mise run generate`; CI fails on stale output.
 

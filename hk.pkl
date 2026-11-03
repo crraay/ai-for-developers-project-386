@@ -46,13 +46,7 @@ hooks {
       }
     }
   }
-  // Whole-project tier: everything `mise run check` covers. CI runs the same
-  // command, so the hook cannot drift from the gate. Bypass: git push --no-verify.
-  ["pre-push"] {
-    steps {
-      ["check"] {
-        check = "mise run check"
-      }
-    }
-  }
+  // No pre-push hook on purpose: the full gate (`mise run check`) runs in CI on
+  // every push, and duplicating it locally cost minutes per push. Run it
+  // yourself before calling a change done — nothing will run it for you.
 }
