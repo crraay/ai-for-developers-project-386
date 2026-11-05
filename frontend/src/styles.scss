@@ -1,1 +1,6 @@
-/* You can add global styles to this file, and also import other style files */
+/* Narrow reading column for every routed page except the landing page, which
+   defines its own wider `.landing` measure in home-page.scss. */
+.page {
+  margin: 0 auto;
+  max-width: 40rem;
+}

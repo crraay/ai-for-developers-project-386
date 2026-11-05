@@ -14,8 +14,8 @@
   text-decoration: none;
 }
 
+/* Fluid shell: the narrow reading column lives on `.page` (styles.scss) so the
+   landing page can claim its own wider measure. */
 .main {
-  margin: 0 auto;
-  max-width: 40rem;
   padding: 0 1rem;
 }

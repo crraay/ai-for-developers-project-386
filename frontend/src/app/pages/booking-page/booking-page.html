@@ -3,7 +3,7 @@
 
   @if (loadFailed()) {
     <p class="error" role="alert">Booking not found. Check your cancellation link.</p>
-    <p><a routerLink="/">Back to available times</a></p>
+    <p><a routerLink="/book">Back to available times</a></p>
   } @else if (booking(); as booking) {
     <dl class="details">
       <dt>When</dt>
@@ -28,7 +28,7 @@
       <p class="hint">This page is your secret cancellation link — keep it.</p>
     } @else {
       <p class="hint">This booking is cancelled; the slot is free again.</p>
-      <p><a routerLink="/">Book another time</a></p>
+      <p><a routerLink="/book">Book another time</a></p>
     }
   }
 </section>
