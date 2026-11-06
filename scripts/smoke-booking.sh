@@ -6,13 +6,17 @@ set -euo pipefail
 base_url="${SMOKE_BASE_URL:-http://localhost:8080}"
 
 # Seeded availability is Mon-Fri, so walk up to nine days ahead to find a day
-# with slots regardless of when the smoke runs.
+# with slots regardless of when the smoke runs. The `|| true` on the slot
+# extraction swallows the harmless case where the day's slots response is `[]`
+# (weekends, fully-booked days): `grep` returns 1 on no match, and without
+# that OR-clause `set -euo pipefail` would silently abort the whole script
+# before the loop could move on to the next date.
 slot=""
 target_date=""
 for offset in $(seq 2 9); do
   target_date="$(date -u -d "+${offset} days" +%Y-%m-%d)"
   slots="$(curl -fsS "${base_url}/api/slots?date=${target_date}&durationMinutes=30")"
-  slot="$(printf '%s' "$slots" | grep -o '"[^"]*"' | head -n 1 | tr -d '"')"
+  slot="$(printf '%s' "$slots" | grep -o '"[^"]*"' | head -n 1 | tr -d '"' || true)"
   if [ -n "${slot}" ]; then
     break
   fi
