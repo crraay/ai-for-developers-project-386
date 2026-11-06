@@ -16,6 +16,10 @@ _Avoid_: visitor, invitee, customer, user
 A guest's reservation of a specific time interval with the host.
 _Avoid_: appointment, meeting, event, reservation
 
+**Ongoing booking**:
+A booking whose interval has started but not yet ended. Always active and frozen: it can no longer be cancelled.
+_Avoid_: in progress, live booking, current booking
+
 **Availability**:
 The set of time intervals when the host can be booked.
 _Avoid_: schedule, working hours

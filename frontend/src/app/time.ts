@@ -15,6 +15,20 @@ export function formatLocalDateTime(isoInstant: string): string {
   return new Date(isoInstant).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+export function formatInTimeZone(
+  isoInstant: string,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions = {},
+): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone, ...options }).format(new Date(isoInstant));
+}
+
+/** 30 min → "30 min"; 60 min → "1 hr". */
+export function durationLabel(start: string, end: string): string {
+  const minutes = Math.round((Date.parse(end) - Date.parse(start)) / 60_000);
+  return minutes >= 60 ? `${minutes / 60} hr` : `${minutes} min`;
+}
+
 /** A Date as a yyyy-mm-dd value for date inputs. */
 export function toDateString(date: Date): string {
   const year = date.getFullYear();

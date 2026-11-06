@@ -21,6 +21,9 @@ public class BookingRepository {
   /** SQLState reported by the booking_no_active_overlap exclusion constraint (ADR-0006). */
   private static final String EXCLUSION_VIOLATION = "23P01";
 
+  private static final String BOOKING_COLUMNS =
+      "id, guest_name, guest_email, start_at, end_at, state, cancellation_token";
+
   private final DataSource dataSource;
 
   public BookingRepository(DataSource dataSource) {
@@ -49,25 +52,27 @@ public class BookingRepository {
   }
 
   public Optional<Booking> findByToken(String token) {
-    String sql =
-        "SELECT id, guest_name, guest_email, start_at, end_at, state, cancellation_token"
-            + " FROM booking WHERE cancellation_token = ?";
     try (Connection connection = dataSource.getConnection();
-        PreparedStatement statement = connection.prepareStatement(sql)) {
+        PreparedStatement statement =
+            connection.prepareStatement(
+                "SELECT " + BOOKING_COLUMNS + " FROM booking WHERE cancellation_token = ?")) {
       statement.setString(1, token);
       try (ResultSet rs = statement.executeQuery()) {
-        if (!rs.next()) {
-          return Optional.empty();
-        }
-        return Optional.of(
-            new Booking(
-                rs.getLong("id"),
-                rs.getString("guest_name"),
-                rs.getString("guest_email"),
-                rs.getTimestamp("start_at").toInstant(),
-                rs.getTimestamp("end_at").toInstant(),
-                rs.getString("state"),
-                rs.getString("cancellation_token")));
+        return rs.next() ? Optional.of(readBooking(rs)) : Optional.empty();
+      }
+    } catch (SQLException e) {
+      throw new IllegalStateException("failed to read booking", e);
+    }
+  }
+
+  public Optional<Booking> findById(long id) {
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement statement =
+            connection.prepareStatement(
+                "SELECT " + BOOKING_COLUMNS + " FROM booking WHERE id = ?")) {
+      statement.setLong(1, id);
+      try (ResultSet rs = statement.executeQuery()) {
+        return rs.next() ? Optional.of(readBooking(rs)) : Optional.empty();
       }
     } catch (SQLException e) {
       throw new IllegalStateException("failed to read booking", e);
@@ -108,5 +113,41 @@ public class BookingRepository {
     } catch (SQLException e) {
       throw new IllegalStateException("failed to read active bookings", e);
     }
+  }
+
+  /**
+   * Bookings whose interval has not yet ended ({@code end_at > cutoff}), both states, sorted by
+   * start ascending. Powers the host page; an ongoing booking (start &lt;= cutoff &lt; end) is part
+   * of the result and is rendered by the page in its own "Happening now" section.
+   */
+  public List<Booking> findUpcomingEndingAfter(Instant cutoff) {
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement statement =
+            connection.prepareStatement(
+                "SELECT "
+                    + BOOKING_COLUMNS
+                    + " FROM booking WHERE end_at > ? ORDER BY start_at ASC")) {
+      statement.setTimestamp(1, Timestamp.from(cutoff));
+      try (ResultSet rs = statement.executeQuery()) {
+        List<Booking> bookings = new ArrayList<>();
+        while (rs.next()) {
+          bookings.add(readBooking(rs));
+        }
+        return bookings;
+      }
+    } catch (SQLException e) {
+      throw new IllegalStateException("failed to read bookings", e);
+    }
+  }
+
+  private static Booking readBooking(ResultSet rs) throws SQLException {
+    return new Booking(
+        rs.getLong("id"),
+        rs.getString("guest_name"),
+        rs.getString("guest_email"),
+        rs.getTimestamp("start_at").toInstant(),
+        rs.getTimestamp("end_at").toInstant(),
+        rs.getString("state"),
+        rs.getString("cancellation_token"));
   }
 }

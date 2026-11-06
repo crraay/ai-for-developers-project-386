@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.callcalendar.api.BookingResponse;
 import com.callcalendar.api.CreateBookingRequest;
+import com.callcalendar.api.HostBookingResponse;
 import com.callcalendar.api.HostSettingsResponse;
 import com.callcalendar.service.BookingRules;
 import io.micronaut.core.type.GenericArgument;
@@ -18,7 +19,10 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Duration;
@@ -210,5 +214,193 @@ class BookingFlowTest {
       date = date.plusDays(1);
     }
     return date;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Host view: list bookings + cancel by id (UC-5/UC-6)
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void hostListsUpcomingAndOmitsPastAndCancelledTokens() throws Exception {
+    Instant now = clock.instant();
+    insertBooking(
+        "Grace Hopper",
+        "grace@example.com",
+        now.minus(Duration.ofHours(2)),
+        now.minus(Duration.ofHours(1)),
+        "active",
+        "past-token-1234567890ab");
+    long ongoingId =
+        insertBooking(
+            "Ongoing Agora",
+            "ongoing@example.com",
+            now.minus(Duration.ofMinutes(15)),
+            now.plus(Duration.ofMinutes(15)),
+            "active",
+            "ongoing-token-12345678");
+    long futureActiveId =
+        insertBooking(
+            "Ada Lovelace",
+            "ada@example.com",
+            now.plus(Duration.ofHours(3)),
+            now.plus(Duration.ofHours(3).plusMinutes(30)),
+            "active",
+            "future-token-1234567890");
+    long futureCancelledId =
+        insertBooking(
+            "Cancelled Cassin",
+            "cass@example.com",
+            now.plus(Duration.ofHours(4)),
+            now.plus(Duration.ofHours(4).plusMinutes(30)),
+            "cancelled",
+            "cancelled-token-12345");
+
+    List<HostBookingResponse> listed =
+        client
+            .toBlocking()
+            .retrieve(
+                HttpRequest.GET("/api/bookings"),
+                new GenericArgument<List<HostBookingResponse>>() {});
+
+    // Past bookings are excluded (frozen history; invariant #3 says bookings are cancelled before
+    // starting, so an active booking whose end is in the past should never happen — but if one
+    // does, the host list hides it). Only the past-active booking was inserted for that property.
+    assertEquals(3, listed.size());
+    assertEquals(ongoingId, listed.get(0).id());
+    assertEquals(futureActiveId, listed.get(1).id());
+    assertEquals(futureCancelledId, listed.get(2).id());
+    assertEquals("active", listed.get(1).state());
+    assertEquals("cancelled", listed.get(2).state());
+
+    // The host list must NOT leak the secret cancellation token (HostBookingResponse intentionally
+    // omits it; this asserts the contract holds end-to-end through the JSON serialiser).
+    String rawList = client.toBlocking().retrieve(HttpRequest.GET("/api/bookings"), String.class);
+    assertFalse(rawList.contains("cancellationToken"));
+    assertFalse(rawList.contains("future-token-1234567890"));
+  }
+
+  @Test
+  void hostCancelByIdReturnsCancelledState() throws Exception {
+    Instant now = clock.instant();
+    long id =
+        insertBooking(
+            "Ada Lovelace",
+            "ada@example.com",
+            now.plus(Duration.ofHours(3)),
+            now.plus(Duration.ofHours(3).plusMinutes(30)),
+            "active",
+            "future-token-1234567890");
+
+    HostBookingResponse cancelled =
+        client
+            .toBlocking()
+            .retrieve(
+                HttpRequest.create(HttpMethod.POST, "/api/host/bookings/" + id + "/cancel"),
+                HostBookingResponse.class);
+
+    assertEquals(id, cancelled.id());
+    assertEquals("cancelled", cancelled.state());
+  }
+
+  @Test
+  void hostCancelByIdIsIdempotentForAlreadyCancelled() throws Exception {
+    Instant now = clock.instant();
+    long id =
+        insertBooking(
+            "Ada Lovelace",
+            "ada@example.com",
+            now.plus(Duration.ofHours(3)),
+            now.plus(Duration.ofHours(3).plusMinutes(30)),
+            "cancelled",
+            "future-token-1234567890");
+
+    HostBookingResponse cancelled =
+        client
+            .toBlocking()
+            .retrieve(
+                HttpRequest.create(HttpMethod.POST, "/api/host/bookings/" + id + "/cancel"),
+                HostBookingResponse.class);
+
+    assertEquals("cancelled", cancelled.state());
+  }
+
+  @Test
+  void hostCancelByIdOnceStartedIs409() throws Exception {
+    Instant now = clock.instant();
+    long id =
+        insertBooking(
+            "Ongoing Agora",
+            "ongoing@example.com",
+            now.minus(Duration.ofMinutes(15)),
+            now.plus(Duration.ofMinutes(15)),
+            "active",
+            "ongoing-token-12345678");
+
+    HttpClientResponseException ex =
+        assertThrows(
+            HttpClientResponseException.class,
+            () ->
+                client
+                    .toBlocking()
+                    .exchange(
+                        HttpRequest.create(
+                            HttpMethod.POST, "/api/host/bookings/" + id + "/cancel")));
+    assertEquals(409, ex.getStatus().getCode());
+    assertTrue(ex.getResponse().getContentType().toString().contains("application/problem+json"));
+    String body = ex.getResponse().getBody(String.class).orElseThrow();
+    assertTrue(body.contains("can no longer be cancelled"));
+  }
+
+  @Test
+  void hostCancelByIdUnknownIs404() {
+    assertStatus(404, HttpRequest.create(HttpMethod.POST, "/api/host/bookings/9999999/cancel"));
+  }
+
+  @Test
+  void hostListUnknownIsExcludedButDoesNotExplode() throws Exception {
+    Instant now = clock.instant();
+    insertBooking(
+        "Ada Lovelace",
+        "ada@example.com",
+        now.plus(Duration.ofHours(3)),
+        now.plus(Duration.ofHours(3).plusMinutes(30)),
+        "active",
+        "future-token-1234567890");
+
+    List<HostBookingResponse> listed =
+        client
+            .toBlocking()
+            .retrieve(
+                HttpRequest.GET("/api/bookings"),
+                new GenericArgument<List<HostBookingResponse>>() {});
+    assertEquals(1, listed.size());
+    assertTrue(listed.get(0).id() > 0);
+  }
+
+  /**
+   * Inserts a raw booking row so the host list tests don't depend on the seeded booking windows or
+   * the slot alignment rules. Returns the generated id.
+   */
+  private long insertBooking(
+      String name, String email, Instant start, Instant end, String state, String token)
+      throws Exception {
+    try (Connection connection = dataSource.getConnection();
+        PreparedStatement statement =
+            connection.prepareStatement(
+                "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state,"
+                    + " cancellation_token) VALUES (?, ?, ?, ?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS)) {
+      statement.setString(1, name);
+      statement.setString(2, email);
+      statement.setTimestamp(3, Timestamp.from(start));
+      statement.setTimestamp(4, Timestamp.from(end));
+      statement.setString(5, state);
+      statement.setString(6, token);
+      statement.executeUpdate();
+      try (ResultSet keys = statement.getGeneratedKeys()) {
+        keys.next();
+        return keys.getLong(1);
+      }
+    }
   }
 }

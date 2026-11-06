@@ -58,9 +58,34 @@ public class BookingService {
         .orElseThrow(() -> new BookingNotFoundException("booking not found"));
   }
 
+  /**
+   * UC-5: book bookings with {@code end > now} (ongoing + future), both states, sorted ascending.
+   * The caller decides how to split the result into "Happening now" vs the upcoming list.
+   */
+  public List<Booking> listUpcoming(Instant now) {
+    return bookingRepository.findUpcomingEndingAfter(now);
+  }
+
   /** Idempotent for already-cancelled bookings; refuses once the booking has started. */
   public Booking cancel(String token) {
-    Booking booking = getByToken(token);
+    return cancelInternal(
+        bookingRepository
+            .findByToken(token)
+            .orElseThrow(() -> new BookingNotFoundException("booking not found")));
+  }
+
+  /**
+   * UC-6: host-side cancellation by numeric id. Same semantics as the token-based cancel:
+   * idempotent if already cancelled, refuses once the booking has started (invariant #3).
+   */
+  public Booking cancelById(long id) {
+    return cancelInternal(
+        bookingRepository
+            .findById(id)
+            .orElseThrow(() -> new BookingNotFoundException("booking not found")));
+  }
+
+  private Booking cancelInternal(Booking booking) {
     if (!booking.isActive()) {
       return booking;
     }

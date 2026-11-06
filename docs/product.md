@@ -47,13 +47,42 @@ becomes available again immediately.
 
 ### UC-5: Host views upcoming bookings
 
-The host sees a list of bookings: guest name, guest email, start/end, state
-(active / cancelled).
+The host opens the host page (`/host`, reached via the top-right **Guest / Host**
+toggle in the page header — unauthenticated by design, see below). The page
+shows:
+
+- A **"Happening now"** section above the list when a booking is ongoing
+  (`start_at <= now < end_at`). The ongoing booking carries no cancel button:
+  starting marks it frozen history (invariant #3), so displaying it without a
+  cancel affordance is deliberate, not an oversight.
+- The **upcoming list** (`start_at > now`), sorted soonest-first, with columns
+  for date, start–end timeslot (rendered in the host's configured timezone,
+  labelled), duration, guest name, guest email, state.
+- **Filter bubbles** `All` / `Active` / `Cancelled` above the list. Filtering is
+  done client-side; the result set is bounded by the 90-day horizon. The
+  default is `All`; empty-state copy reflects the active filter ("No active
+  bookings.", "No cancelled bookings.", "No upcoming bookings.").
+- A loading state, an error message via `errorMessage()` plus a **Retry**
+  button on failure.
+
+`GET /api/bookings` returns the result set (bookings with `end_at > now`, both
+states, sorted by `start_at` ascending). The response is a host-specific
+payload (`HostBookingResponse`: id + guest fields + state) that intentionally
+omits the secret cancellation token, which is never sent outside the guest
+flows that already know it.
 
 ### UC-6: Host cancels a booking
 
-The host cancels an active booking from the list. The slot becomes available
-again immediately. The guest is not notified (no notifications in v1).
+The host cancels an active, not-yet-started booking from the list. Clicking
+**Cancel** opens a native `<dialog>` ("Cancel this booking? — slot becomes
+available again"). Confirm calls `POST /api/host/bookings/{id}/cancel`; the
+row flips to the **cancelled** badge and stays visible under `All` and
+`Cancelled`, disappears under `Active`. The slot becomes available again
+immediately. The guest is not notified (no notifications in v1).
+
+Semantics mirror the guest-side cancellation: idempotent if the booking is
+already cancelled (200), 409 if the booking has started (race against the
+invariant).
 
 ## First milestone: walking skeleton
 

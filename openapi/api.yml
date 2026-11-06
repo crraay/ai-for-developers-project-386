@@ -17,6 +17,22 @@ tags:
   description: Public host settings
 paths:
   /api/bookings:
+    get:
+      tags:
+      - booking
+      summary: List upcoming bookings
+      operationId: listBookings
+      responses:
+        "200":
+          description: "Bookings with end_at > now, both states, sorted by start_at\
+            \ ascending. The host UI splits the response into a 'Happening now' section\
+            \ (start <= now < end) and the upcoming list (start > now)."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HostBookingResponse"
     post:
       tags:
       - booking
@@ -117,6 +133,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HostSettingsResponse"
+  /api/host/bookings/{id}/cancel:
+    post:
+      tags:
+      - host-bookings
+      summary: Cancel a booking by its numeric id (host view)
+      operationId: cancelBookingById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: "The booking, now cancelled; the slot is free again"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostBookingResponse"
+        "404":
+          description: No booking for this id
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: The booking has started and can no longer be cancelled
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/ping:
     get:
       tags:
@@ -211,6 +259,36 @@ components:
           type: string
       description: Body of POST /api/bookings. Fields are nullable because input is
         untrusted.
+    HostBookingResponse:
+      required:
+      - end
+      - guestEmail
+      - guestName
+      - id
+      - start
+      - state
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        state:
+          type: string
+      description: "Bookings payload the host page needs. Mirrors BookingResponse\
+        \ minus the secret cancellation token: the token is meant to be per-guest\
+        \ (docs/domain.md), and listing every guest's token in one unauthenticated\
+        \ response would contradict that. The id is included so the host view can\
+        \ drive host-side cancellation by id (UC-6)."
     HostSettingsResponse:
       required:
       - allowedDurations

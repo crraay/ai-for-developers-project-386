@@ -1,5 +1,9 @@
 <header class="header">
   <h1 class="title"><a class="title-link" routerLink="/">Call Calendar</a></h1>
+  <nav class="mode-switch" aria-label="Mode">
+    <a routerLink="/" [class.active]="mode() === 'guest'">Guest</a>
+    <a routerLink="/host" [class.active]="mode() === 'host'">Host</a>
+  </nav>
 </header>
 <main class="main">
   <router-outlet />

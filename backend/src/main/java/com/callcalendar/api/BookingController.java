@@ -8,19 +8,24 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Post;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.Clock;
+import java.util.List;
 
 @Tag(name = "booking")
 @Controller("/api/bookings")
 public class BookingController {
 
   private final BookingService bookingService;
+  private final Clock clock;
 
-  public BookingController(BookingService bookingService) {
+  public BookingController(BookingService bookingService, Clock clock) {
     this.bookingService = bookingService;
+    this.clock = clock;
   }
 
   @Post
@@ -51,6 +56,23 @@ public class BookingController {
                 request.durationMinutes(),
                 request.guestName(),
                 request.guestEmail())));
+  }
+
+  @Get
+  @Operation(summary = "List upcoming bookings", operationId = "listBookings")
+  @ApiResponse(
+      responseCode = "200",
+      description =
+          "Bookings with end_at > now, both states, sorted by start_at ascending. The host UI"
+              + " splits the response into a 'Happening now' section (start <= now < end) and"
+              + " the upcoming list (start > now).",
+      content =
+          @Content(
+              array = @ArraySchema(schema = @Schema(implementation = HostBookingResponse.class))))
+  public List<HostBookingResponse> list() {
+    return bookingService.listUpcoming(clock.instant()).stream()
+        .map(HostBookingResponse::from)
+        .toList();
   }
 
   @Get("/{token}")

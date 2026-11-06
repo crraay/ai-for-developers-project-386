@@ -3,5 +3,6 @@
 
 export type { BookingResponse } from './models/booking-response';
 export type { CreateBookingRequest } from './models/create-booking-request';
+export type { HostBookingResponse } from './models/host-booking-response';
 export type { HostSettingsResponse } from './models/host-settings-response';
 export type { ProblemDetail } from './models/problem-detail';
