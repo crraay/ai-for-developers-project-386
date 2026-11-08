@@ -1,0 +1,26 @@
+name: release-please
+
+on:
+  push:
+    branches: [main] # default branch only: never on feature branches or tags
+
+permissions: {}
+
+# One release at a time: a newer run waits for a running release instead of
+# cancelling it mid-tagging.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Minimum the action needs: tags/releases (contents) and the release PR.
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Manifest mode is auto-detected from release-please-config.json +
+      # .release-please-manifest.json at the repo root (see ADR 0007).
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
