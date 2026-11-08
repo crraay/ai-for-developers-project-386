@@ -6,7 +6,7 @@ FROM eclipse-temurin:25-jdk AS build
 WORKDIR /app
 COPY . .
 # /root/.gradle holds the wrapper distribution (dists/) and the per-user cache.
-# Mounting it as a writable cache so that:
+# Mounting it as a cache (the default `rw` mode is writable) so that:
 #   - Warm runs (CI cache restored from type=gha) skip the wrapper download
 #     that previously timed out at services.gradle.org after 10s.
 #   - Cold runs still write to the mount, so a successful cold build now seeds
