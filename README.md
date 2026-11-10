@@ -56,6 +56,47 @@ cd frontend && mise exec -- npm start
 
 
 
+## Deployment
+
+The app runs on [Render](https://render.com) (free tier), and deploys **manually
+only** — no service has auto-deploy enabled, and the deploy workflow has no push
+or PR triggers:
+
+| Resource | Render service | URL |
+| --- | --- | --- |
+| Frontend | static site `call-calendar` | https://call-calendar-es6x.onrender.com |
+| Backend | web service `call-calendar-api` | https://call-calendar-api-55jr.onrender.com |
+| Database | Postgres `call-calendar-db` (free) | internal, not exposed |
+
+To deploy: push to `main`, then run the [`deploy`](.github/workflows/deploy.yml)
+workflow by hand (GitHub → Actions → **deploy** → *Run workflow*). It runs the
+same `mise run check` gate CI runs, deploys the backend first and the static site
+second, then verifies the live deployment (API ping, served index, CORS
+preflight).
+
+One-time setup: add a `RENDER_API_KEY` repository secret (Settings → Secrets and
+variables → Actions) holding a Render API key with write access. The same key
+sits in the gitignored `.env` (for local Render API scripting) and
+`.render-api-key` (read by the `render` MCP server configured in
+`opencode.json`); neither file is ever committed.
+
+Free-tier caveats:
+
+- Services spin down after ~15 minutes without traffic; the first request after
+  idle takes 30–60 seconds to wake them.
+- The free Postgres instance expires 30 days after creation (**2026-12-10**) and
+  must then be recreated (data is not preserved).
+- Render suffixes service URLs (`-es6x`, `-55jr`). If a service is recreated,
+  update the URLs in `frontend/src/environments/environment.prod.ts`, the
+  `CORS_ALLOWED_ORIGINS` env var of the backend service, and
+  `.github/workflows/deploy.yml`.
+- The frontend's API URL is baked in at build time via Angular `fileReplacements`
+  (`environment.prod.ts`); the backend's allowed origin comes from the
+  `CORS_ALLOWED_ORIGINS` Render env var (defaulting to `http://localhost:4200`
+  locally).
+
+
+
 ## Testing
 
 Tests are run automatically by Hexlet on every commit via the [`hexlet-check`](.github/workflows/hexlet-check.yml) GitHub Actions workflow. This repo's own [`ci.yml`](.github/workflows/ci.yml) additionally runs the full quality gate on every push.

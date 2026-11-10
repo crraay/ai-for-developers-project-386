@@ -1,0 +1,118 @@
+name: deploy
+
+# Manual-only deploys. This workflow is the ONLY path to Render: it has no
+# push/PR triggers, so nothing ever reaches production unless a human clicks
+# "Run workflow" (and only after the same checks CI runs have passed).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false # never interrupt a deploy already in flight
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      # Render service IDs and URLs (not secrets — see README "Deployment")
+      BACKEND_SERVICE_ID: srv-dbpgp8tbedkc738n1hh0
+      STATIC_SITE_ID: srv-dbpgqkk9v7es73bs09fg
+      BACKEND_URL: https://call-calendar-api-55jr.onrender.com
+      STATIC_SITE_URL: https://call-calendar-es6x.onrender.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+
+      - name: Install JS dependencies (root = tooling, frontend = app)
+        run: |
+          npm ci
+          npm --prefix frontend ci
+
+      # The same gate CI runs on every push — nothing deploys that check hasn't passed.
+      - name: mise run check
+        run: mise run check
+
+      - name: Deploy backend, then static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${RENDER_API_KEY}" ]; then
+            echo "::error::RENDER_API_KEY secret is not set (GitHub repo -> Settings -> Secrets and variables -> Actions)"
+            exit 1
+          fi
+
+          deploy_and_wait() {
+            local service_id="$1"
+            local label="$2"
+            local deploy_id status attempt
+
+            deploy_id=$(curl -fsS -X POST \
+              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              "https://api.render.com/v1/services/${service_id}/deploys" |
+              jq -er '.id // .deploy.id')
+            echo "::notice::${label}: started deploy ${deploy_id}"
+
+            for attempt in $(seq 1 90); do
+              status=$(curl -fsS \
+                -H "Authorization: Bearer ${RENDER_API_KEY}" \
+                "https://api.render.com/v1/services/${service_id}/deploys/${deploy_id}" |
+                jq -er '.status')
+              echo "${label}: ${status} (attempt ${attempt})"
+              case "${status}" in
+                live)
+                  echo "::notice::${label}: live"
+                  return 0
+                  ;;
+                *failed* | *canceled*)
+                  echo "::error::${label}: deploy ${deploy_id} ended with status ${status}"
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+            echo "::error::${label}: deploy ${deploy_id} did not finish within 15 minutes"
+            return 1
+          }
+
+          # Backend first: the frontend must never go live pointing at a dead API.
+          deploy_and_wait "${BACKEND_SERVICE_ID}" "backend"
+          deploy_and_wait "${STATIC_SITE_ID}" "static site"
+
+      - name: Verify the live deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ping_body=$(curl -fsS --retry 12 --retry-delay 5 --retry-all-errors "${BACKEND_URL}/api/ping")
+          if [[ "${ping_body}" != *"pong"* ]]; then
+            echo "::error::backend /api/ping did not return pong: ${ping_body}"
+            exit 1
+          fi
+
+          index_body=$(curl -fsS --retry 12 --retry-delay 5 --retry-all-errors "${STATIC_SITE_URL}/")
+          if [[ "${index_body}" != *"<app-root>"* ]]; then
+            echo "::error::static site did not serve the Angular index"
+            exit 1
+          fi
+
+          # The header only appears when the Origin is allowed, so its presence
+          # proves both that CORS is active and that the origin is accepted.
+          # No -f here: a rejected preflight answers 405, and we want the
+          # header check below to print a clear error instead of curl's.
+          preflight=$(curl -sS -i -X OPTIONS \
+            -H "Origin: ${STATIC_SITE_URL}" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: content-type" \
+            "${BACKEND_URL}/api/bookings")
+          if [[ "${preflight,,}" != *"access-control-allow-origin:"* ]]; then
+            echo "::error::CORS preflight from ${STATIC_SITE_URL} was not allowed"
+            echo "${preflight}"
+            exit 1
+          fi
+
+          echo "deployment verified"
