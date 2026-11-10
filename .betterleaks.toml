@@ -22,6 +22,17 @@ paths = [
   '''mise\.lock''',
 ]
 
+# The deploy setup keeps the Render API key in two gitignored local files
+# (.env for scripts, .render-api-key for OpenCode's {file:} MCP header).
+# Neither can ever be committed (.gitignore), CI never sees them, and the
+# scanner's job for these paths is done by git itself. Scoped to the one rule
+# that fires on Render keys so a real key anywhere else still fails.
+# (review 2027-02-01)
+[[allowlists]]
+description = "Local Render API key files (gitignored, never committed)"
+rules = ["render-api-key"]
+paths = ['''^\.env$''', '''^\.render-api-key$''']
+
 # The compose stack uses well-known dev-only credentials for the local PostgreSQL
 # container; never used outside local dev. Scoped to secret="postgres" in
 # docker-compose.yml only, so a real secret in that file still fails the scan.
