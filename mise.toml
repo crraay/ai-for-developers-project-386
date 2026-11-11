@@ -45,7 +45,7 @@ description = "Repo hygiene: typos, secrets, Dockerfiles, workflow lint"
 run = [
   "typos",
   "betterleaks dir --config .betterleaks.toml .",
-  "hadolint backend/Dockerfile frontend/Dockerfile",
+  "hadolint Dockerfile backend/Dockerfile frontend/Dockerfile",
   # Fixed file list on purpose: hexlet-check.yml is managed externally and must
   # not be edited, so it is excluded by omission rather than by an ignore rule.
   "jactionlint .github/workflows/ci.yml .github/workflows/security.yml .github/workflows/release-please.yml .github/workflows/pr-title.yml .github/workflows/deploy.yml",
