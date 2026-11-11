@@ -69,8 +69,12 @@ or PR triggers:
 | Database | Postgres `call-calendar-db` (free) | internal, not exposed |
 
 To deploy: push to `main`, then run the [`deploy`](.github/workflows/deploy.yml)
-workflow by hand (GitHub → Actions → **deploy** → *Run workflow*). It runs the
-same `mise run check` gate CI runs, deploys the backend first and the static site
+workflow by hand (GitHub → Actions → **deploy** → *Run workflow*), selecting
+**`main`** in the branch dropdown — Render builds `main`, so the checked-out code
+and the deployed code must be the same. (The *Run workflow* button is only
+registered once the file exists on the default branch, `dev`; both branches carry
+`deploy.yml`.) The workflow runs the same `mise run check` gate CI runs,
+deploys the backend first and the static site
 second, then verifies the live deployment (API ping, served index, CORS
 preflight).
 
