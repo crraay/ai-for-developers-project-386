@@ -2,6 +2,10 @@
 
 ## Working in this repo
 
+### Commits
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) — enforced by `commitlint.config.mjs` (commit-msg hk hook) and CI (`commitlint` runs over the pushed range).
+
 Run at most one build command at a time per directory (`gradlew`, `npm`, `docker compose`) — a second concurrent build corrupts shared build/test state.
 
 Agent shells on this machine: `mise` is not on PATH — full path: `C:\Program Files\mise\bin\mise.exe` (it has moved before: if that path is empty, re-find `mise.exe` under `C:\Program Files` and update this line). Prepend `C:\Program Files\mise\bin` to `$env:PATH` before `git commit`/`git push` (hk hooks exec `mise x`) and before running tasks that nest `mise run`. Prefer the `mise run` tasks for builds: bare `gradlew` resolves to this machine's system Java 17 (the build needs 25) and `mise x -- gradlew` fails with "cannot find binary path"; if you must invoke gradlew directly, set `$env:JAVA_HOME = (mise where java)` first.
