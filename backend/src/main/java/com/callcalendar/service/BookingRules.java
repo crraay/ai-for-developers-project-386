@@ -4,14 +4,14 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * The v1 booking constants from docs/domain.md: 15-minute slot grid, 1 hour minimum notice, 90-day
+ * The v1 booking constants from docs/domain.md: 15-minute slot grid, 1 hour minimum notice, 14-day
  * rolling booking horizon.
  */
 public final class BookingRules {
 
   public static final Duration SLOT_GRID = Duration.ofMinutes(15);
   public static final Duration MIN_NOTICE = Duration.ofHours(1);
-  public static final Duration HORIZON = Duration.ofDays(90);
+  public static final Duration HORIZON = Duration.ofDays(14);
 
   private BookingRules() {}
 

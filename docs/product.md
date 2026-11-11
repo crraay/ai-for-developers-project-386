@@ -59,7 +59,7 @@ shows:
   for date, start–end timeslot (rendered in the host's configured timezone,
   labelled), duration, guest name, guest email, state.
 - **Filter bubbles** `All` / `Active` / `Cancelled` above the list. Filtering is
-  done client-side; the result set is bounded by the 90-day horizon. The
+  done client-side; the result set is bounded by the 14-day horizon. The
   default is `All`; empty-state copy reflects the active filter ("No active
   bookings.", "No cancelled bookings.", "No upcoming bookings.").
 - A loading state, an error message via `errorMessage()` plus a **Retry**

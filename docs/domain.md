@@ -31,7 +31,7 @@ For a chosen duration `d` (from the host's allowed set), a valid slot start is:
 - aligned to a 15-minute boundary (:00, :15, :30, :45),
 - fully contained within availability: `[start, start + d] ⊆ availability`,
 - at least 1 hour in the future,
-- at most 90 days in the future.
+- at most 14 days in the future.
 
 ## Invariants
 
@@ -60,9 +60,12 @@ For a chosen duration `d` (from the host's allowed set), a valid slot start is:
 
 | Constant            | Value            |
 | ------------------- | ---------------- |
-| Booking horizon     | 90 days, rolling |
+| Booking horizon     | 14 days, rolling |
 | Minimum notice      | 1 hour           |
 | Slot alignment grid | 15 minutes       |
 | Duration options    | 15 / 30 / 60 min |
 
 Constants may become host settings later; that is a trivial change by design.
+
+The booking horizon was widened from 90 days to 14 days to match the product
+decision recorded in the project spec (see docs/product.md).

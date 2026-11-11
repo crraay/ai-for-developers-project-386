@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 
 /**
- * Deterministic clock for tests sensitive to rolling windows (the 90-day booking horizon). Only
+ * Deterministic clock for tests sensitive to rolling windows (the 14-day booking horizon). Only
  * active for tests running with the {@code fixed-clock} environment; TimeConfig's system clock
  * steps aside there.
  */
@@ -17,8 +17,8 @@ import java.time.ZoneOffset;
 public class FixedClockConfig {
 
   /**
-   * 2026-10-16T13:10Z: the horizon lands at 2027-01-14T13:10Z (14:10 Berlin, Thursday), cutting the
-   * seeded 09:00-17:00 window mid-day.
+   * 2026-10-16T13:10Z: the horizon lands at 2026-10-30T13:10Z (14:10 Berlin, Friday — CET after the
+   * Oct 25 DST change), cutting the seeded 09:00-17:00 window mid-day.
    */
   @Singleton
   Clock clock() {

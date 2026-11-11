@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Slot generation per docs/domain.md: slot starts are aligned to the 15-minute grid, fully
- * contained in availability, at least 1 hour and at most 90 days in the future, and free of active
+ * contained in availability, at least 1 hour and at most 14 days in the future, and free of active
  * bookings.
  */
 @Singleton
@@ -42,7 +42,7 @@ public class SlotService {
 
     Instant now = clock.instant();
     // The horizon bounds the start, not the whole slot (docs/domain.md: "a valid
-    // slot start is ... at most 90 days in the future"). BookingService accepts
+    // slot start is ... at most 14 days in the future"). BookingService accepts
     // the same starts, so browse must offer them too.
     Instant horizon = now.plus(BookingRules.HORIZON);
     Instant from = max(dayStart, BookingRules.alignUp(now.plus(BookingRules.MIN_NOTICE)));
