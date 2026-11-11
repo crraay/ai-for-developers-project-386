@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 
 @Tag(name = "host-settings")
 @Controller("/api/host-settings")
@@ -30,7 +29,10 @@ public class HostSettingsController {
       content = @Content(schema = @Schema(implementation = HostSettingsResponse.class)))
   public HostSettingsResponse getHostSettings() {
     var settings = availabilityService.hostSettings();
+    // Sorted ascending: the domain stores allowed durations as a Set (Set.copyOf
+    // has unspecified iteration order) and the guest UI picks durations[0] as its
+    // default, so the API must not leak that order.
     return new HostSettingsResponse(
-        settings.timezone(), List.copyOf(settings.allowedDurationMinutes()));
+        settings.timezone(), settings.allowedDurationMinutes().stream().sorted().toList());
   }
 }

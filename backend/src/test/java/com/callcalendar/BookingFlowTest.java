@@ -66,7 +66,7 @@ class BookingFlowTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/api/host-settings"), HostSettingsResponse.class);
     assertEquals("Europe/Berlin", settings.timezone());
-    assertEquals(List.of(30), settings.allowedDurations());
+    assertEquals(List.of(15, 30, 60), settings.allowedDurations());
   }
 
   @Test
@@ -137,6 +137,35 @@ class BookingFlowTest {
   }
 
   @Test
+  void partialOverlapOfDifferentDurationsIsRejected() {
+    // Book a 30-minute slot, then attempt a 60-minute meeting starting 15
+    // minutes in — partial overlap across different durations must 409.
+    Instant slot = slotsFor(nextWeekday()).get(0);
+    client
+        .toBlocking()
+        .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+
+    HttpClientResponseException ex =
+        assertThrows(
+            HttpClientResponseException.class,
+            () ->
+                client
+                    .toBlocking()
+                    .exchange(
+                        HttpRequest.POST(
+                            "/api/bookings",
+                            new CreateBookingRequest(
+                                slot.plus(Duration.ofMinutes(15)).toString(),
+                                60,
+                                "Ada Lovelace",
+                                "ada@example.com"))));
+    assertEquals(409, ex.getStatus().getCode());
+    assertTrue(ex.getResponse().getContentType().toString().contains("application/problem+json"));
+    String body = ex.getResponse().getBody(String.class).orElseThrow();
+    assertTrue(body.contains("Slot no longer available"));
+  }
+
+  @Test
   void nonBookableSlotsAre409AndMalformedInputIs400() {
     Instant tooSoon = BookingRules.alignUp(clock.instant().plus(Duration.ofMinutes(30)));
     assertStatus(409, HttpRequest.POST("/api/bookings", booking(tooSoon)));
@@ -191,7 +220,7 @@ class BookingFlowTest {
         () -> ex.getResponse().getBody(String.class).orElse(""));
   }
 
-  /** The first bookable instant on a weekday at least 120 days out (beyond the 90-day horizon). */
+  /** The first bookable instant on a weekday at least 120 days out (beyond the 14-day horizon). */
   private Instant nextWeekdayBeyondHorizonAt9() {
     LocalDate date = LocalDate.now(BERLIN).plusDays(120);
     while (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <!-- Widen the allowed-duration seed so the booking flow can offer 15 / 30 / 60
+       (the product's full set per docs/domain.md). Idempotent: only widens when
+       15 or 60 is missing, so re-runs and already-widened rows are no-ops. -->
+
+  <changeSet id="07-allowed-durations-widened" author="callcalendar">
+    <sql>UPDATE host_settings SET allowed_duration_minutes = ARRAY[15,30,60] WHERE id = 1 AND NOT (15 = ANY(allowed_duration_minutes) AND 60 = ANY(allowed_duration_minutes));</sql>
+  </changeSet>
+</databaseChangeLog>
