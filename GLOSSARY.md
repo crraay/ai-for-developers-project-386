@@ -29,8 +29,12 @@ A weekly repeating period of availability (e.g. Mondays 09:00–17:00) that repe
 _Avoid_: shift, regular hours
 
 **Slot**:
-A concrete time interval within availability that a guest can book, with a duration chosen from the host's allowed set.
+A concrete time interval within availability that a guest can book. Its duration comes from the booking type the guest chose; a slot aligns to the 15-minute grid and fits fully inside availability.
 _Avoid_: time slot, opening, vacancy
+
+**Booking type**:
+A host-defined **shape** of booking — a title, a description and a duration — that the guest picks instead of a bare duration. One active row per offering; the duration is derived server-side from the chosen type.
+_Avoid_: meeting type, appointment type, event type
 
 **Blackout**:
 A date or interval when the host is unavailable; suppresses availability that recurring windows would otherwise produce.
