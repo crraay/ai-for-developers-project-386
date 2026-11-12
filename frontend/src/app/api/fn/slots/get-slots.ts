@@ -9,7 +9,7 @@ import { RequestBuilder } from '../../request-builder';
 
 export interface GetSlots$Params {
   date: string;
-  durationMinutes: number;
+  meetingTypeId: number;
 }
 
 export function getSlots(
@@ -21,7 +21,7 @@ export function getSlots(
   const rb = new RequestBuilder(rootUrl, getSlots.PATH, 'get');
   if (params) {
     rb.query('date', params.date, { explode: false });
-    rb.query('durationMinutes', params.durationMinutes, { explode: false });
+    rb.query('meetingTypeId', params.meetingTypeId, { explode: false });
   }
 
   return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
