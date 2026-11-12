@@ -2,6 +2,7 @@ package com.callcalendar.api;
 
 import com.callcalendar.domain.SlotUnavailableException;
 import com.callcalendar.service.BookingNotFoundException;
+import com.callcalendar.service.BookingTypeNotFoundException;
 import com.callcalendar.service.InvalidRequestException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -29,6 +30,11 @@ public class ApiExceptionHandler {
   @Error(exception = BookingNotFoundException.class, global = true)
   public HttpResponse<ProblemDetail> bookingNotFound(BookingNotFoundException e) {
     return problem(HttpStatus.NOT_FOUND, "Booking not found", detail(e));
+  }
+
+  @Error(exception = BookingTypeNotFoundException.class, global = true)
+  public HttpResponse<ProblemDetail> bookingTypeNotFound(BookingTypeNotFoundException e) {
+    return problem(HttpStatus.NOT_FOUND, "Booking type not found", detail(e));
   }
 
   @Error(exception = InvalidRequestException.class, global = true)

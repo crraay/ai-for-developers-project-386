@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "_comment": "render MCP needs an API key; drop it in .render-api-key (gitignored) — see README → Deployment for one-time setup.",
   "mcp": {
     "servers": {
       "render": {

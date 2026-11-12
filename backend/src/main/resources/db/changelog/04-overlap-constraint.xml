@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <!-- Issue #31: the constraint added in 02-schedule compared ranges for
+       EQUALITY (WITH =), which only fires for identical intervals, so two
+       partially overlapping inserts both passed (the service pre-check covers
+       sequential requests only). Re-add it with the overlap operator; the
+       '[)' bounds keep back-to-back bookings legal. 02-schedule is applied
+       everywhere and is never edited. -->
+
+  <changeSet id="08-booking-overlap-operator" author="callcalendar">
+    <sql>ALTER TABLE booking DROP CONSTRAINT booking_no_active_overlap;</sql>
+    <sql>ALTER TABLE booking ADD CONSTRAINT booking_no_active_overlap EXCLUDE USING gist (tstzrange(start_at, end_at, '[)') WITH &amp;&amp;) WHERE (state = 'active');</sql>
+  </changeSet>
+</databaseChangeLog>

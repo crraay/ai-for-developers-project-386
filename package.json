@@ -1,9 +1,13 @@
 {
   "name": "call-calendar",
   "private": true,
-  "description": "Root package for repo-level JS tooling (commitlint). Apps live in backend/ and frontend/.",
+  "description": "Root package for repo-level JS tooling (commitlint) and end-to-end browser tests. Apps live in backend/ and frontend/.",
+  "scripts": {
+    "test:e2e": "playwright test -c e2e/playwright.config.ts"
+  },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",
-    "@commitlint/config-conventional": "21.2.4"
+    "@commitlint/config-conventional": "21.2.4",
+    "@playwright/test": "^1.50.0"
   }
 }

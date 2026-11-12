@@ -17,6 +17,10 @@ services:
 
   backend:
     build: ./backend
+    # CI builds with `docker/build-push-action` and tags the result
+    # `backend:smoke`. Pinning the image here makes `docker compose up -d`
+    # (no `--build`) reuse that local tag instead of building un-cached.
+    image: backend:smoke
     environment:
       DATASOURCES_DEFAULT_URL: jdbc:postgresql://db:5432/callcalendar
       DATASOURCES_DEFAULT_USERNAME: postgres
@@ -28,7 +32,11 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        CONFIGURATION: development
+    image: frontend:smoke
     ports:
       - "4200:80"
     depends_on:

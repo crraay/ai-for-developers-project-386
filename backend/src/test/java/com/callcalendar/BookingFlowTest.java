@@ -43,6 +43,11 @@ class BookingFlowTest {
   /** Non-hex placeholder on purpose (CODING_STANDARDS: betterleaks flags 32-char hex). */
   private static final String UNKNOWN_TOKEN = "unknown-cancellation-token-000000";
 
+  /** Issue #28: bookings now carry a bookingTypeId; the duration comes from the type. */
+  private static final long QUICK_CHAT_ID = 1L;
+
+  private static final long DEEP_DIVE_ID = 2L;
+
   @Inject
   @Client("/")
   HttpClient client;
@@ -66,13 +71,13 @@ class BookingFlowTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/api/host-settings"), HostSettingsResponse.class);
     assertEquals("Europe/Berlin", settings.timezone());
-    assertEquals(List.of(30), settings.allowedDurations());
+    assertEquals(14, settings.bookingHorizonDays());
   }
 
   @Test
   void weekdaysExposeSlotsOnTheGridAndWeekendsDoNot() {
     LocalDate weekday = nextWeekday();
-    List<Instant> starts = slotsFor(weekday);
+    List<Instant> starts = slotsFor(weekday, QUICK_CHAT_ID);
     assertFalse(starts.isEmpty());
     Instant windowOpen = weekday.atTime(9, 0).atZone(BERLIN).toInstant();
     Instant windowClose = weekday.atTime(17, 0).atZone(BERLIN).toInstant();
@@ -80,18 +85,19 @@ class BookingFlowTest {
     assertEquals(windowClose.minus(Duration.ofMinutes(30)), starts.get(starts.size() - 1));
     starts.forEach(start -> assertTrue(BookingRules.isAligned(start)));
 
-    assertTrue(slotsFor(nextWeekendDay()).isEmpty());
+    assertTrue(slotsFor(nextWeekendDay(), QUICK_CHAT_ID).isEmpty());
   }
 
   @Test
   void bookingRoundTripFreesTheSlotAgain() {
-    Instant slot = slotsFor(nextWeekday()).get(0);
+    Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
 
-    BookingResponse created =
-        client
-            .toBlocking()
-            .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    var createResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, createResponse.code());
+    BookingResponse created = createResponse.getBody(BookingResponse.class).orElseThrow();
     assertEquals("active", created.state());
+    assertEquals(QUICK_CHAT_ID, created.bookingTypeId());
     assertFalse(created.cancellationToken().isBlank());
 
     BookingResponse fetched =
@@ -100,7 +106,7 @@ class BookingFlowTest {
             .retrieve(
                 HttpRequest.GET("/api/bookings/" + created.cancellationToken()),
                 BookingResponse.class);
-    assertEquals(slot, fetched.start());
+    assertEquals(slot.toString(), fetched.start());
 
     BookingResponse cancelled =
         client
@@ -112,19 +118,19 @@ class BookingFlowTest {
     assertEquals("cancelled", cancelled.state());
 
     // Cancellation frees the interval immediately (invariant #4)
-    BookingResponse rebooked =
-        client
-            .toBlocking()
-            .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    var rebookResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, rebookResponse.code());
+    BookingResponse rebooked = rebookResponse.getBody(BookingResponse.class).orElseThrow();
     assertEquals("active", rebooked.state());
   }
 
   @Test
   void doubleBookingIsRejectedWithProblemJson() {
-    Instant slot = slotsFor(nextWeekday()).get(0);
-    client
-        .toBlocking()
-        .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
+    var firstResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, firstResponse.code());
 
     HttpClientResponseException ex =
         assertThrows(
@@ -137,11 +143,40 @@ class BookingFlowTest {
   }
 
   @Test
+  void partialOverlapOfDifferentDurationsIsRejected() {
+    // Book a 30-minute slot, then attempt a 60-minute booking starting 15
+    // minutes in — partial overlap across different durations must 409.
+    Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
+    var firstResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, firstResponse.code());
+
+    HttpClientResponseException ex =
+        assertThrows(
+            HttpClientResponseException.class,
+            () ->
+                client
+                    .toBlocking()
+                    .exchange(
+                        HttpRequest.POST(
+                            "/api/bookings",
+                            new CreateBookingRequest(
+                                slot.plus(Duration.ofMinutes(15)).toString(),
+                                DEEP_DIVE_ID,
+                                "Ada Lovelace",
+                                "ada@example.com"))));
+    assertEquals(409, ex.getStatus().getCode());
+    assertTrue(ex.getResponse().getContentType().toString().contains("application/problem+json"));
+    String body = ex.getResponse().getBody(String.class).orElseThrow();
+    assertTrue(body.contains("Slot no longer available"));
+  }
+
+  @Test
   void nonBookableSlotsAre409AndMalformedInputIs400() {
     Instant tooSoon = BookingRules.alignUp(clock.instant().plus(Duration.ofMinutes(30)));
     assertStatus(409, HttpRequest.POST("/api/bookings", booking(tooSoon)));
 
-    Instant misaligned = slotsFor(nextWeekday()).get(0).plusSeconds(60);
+    Instant misaligned = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0).plusSeconds(60);
     assertStatus(409, HttpRequest.POST("/api/bookings", booking(misaligned)));
 
     assertStatus(409, HttpRequest.POST("/api/bookings", booking(nextWeekdayBeyondHorizonAt9())));
@@ -152,14 +187,33 @@ class BookingFlowTest {
         400,
         HttpRequest.POST(
             "/api/bookings",
-            new CreateBookingRequest("not-an-instant", 30, "Ada", "ada@example.com")));
+            new CreateBookingRequest("not-an-instant", QUICK_CHAT_ID, "Ada", "ada@example.com")));
+    // Issue #28: an unknown bookingTypeId is a 404 (not 400) — the slot is itself valid; it's the
+    // picked type that is not.
+    assertStatus(
+        404,
+        HttpRequest.POST(
+            "/api/bookings",
+            new CreateBookingRequest(
+                Instant.now().plus(Duration.ofHours(2)).toString(),
+                999_999L,
+                "Ada",
+                "ada@example.com")));
+    // Missing bookingTypeId is a 400.
     assertStatus(
         400,
         HttpRequest.POST(
             "/api/bookings",
-            new CreateBookingRequest(Instant.now().toString(), 45, "Ada", "ada@example.com")));
-    assertStatus(400, HttpRequest.GET("/api/slots?date=2026-13-40&durationMinutes=30"));
-    assertStatus(400, HttpRequest.GET("/api/slots?date=" + nextWeekday() + "&durationMinutes=45"));
+            new CreateBookingRequest(
+                Instant.now().plus(Duration.ofHours(2)).toString(),
+                null,
+                "Ada",
+                "ada@example.com")));
+    assertStatus(400, HttpRequest.GET("/api/slots?date=2026-13-40&bookingTypeId=1"));
+    // Issue #28: unknown bookingTypeId on the slots endpoint is a 404 (the type doesn't exist);
+    // the issue's "400/404 problem+json" leaves either valid. A malformed date is still a 400.
+    assertStatus(
+        404, HttpRequest.GET("/api/slots?date=" + nextWeekday() + "&bookingTypeId=999999"));
   }
 
   @Test
@@ -169,16 +223,17 @@ class BookingFlowTest {
         404, HttpRequest.create(HttpMethod.POST, "/api/bookings/" + UNKNOWN_TOKEN + "/cancel"));
   }
 
-  private List<Instant> slotsFor(LocalDate date) {
+  private List<Instant> slotsFor(LocalDate date, long bookingTypeId) {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.GET("/api/slots?date=" + date + "&durationMinutes=30"),
+            HttpRequest.GET("/api/slots?date=" + date + "&bookingTypeId=" + bookingTypeId),
             new GenericArgument<List<Instant>>() {});
   }
 
   private static CreateBookingRequest booking(Instant start) {
-    return new CreateBookingRequest(start.toString(), 30, "Ada Lovelace", "ada@example.com");
+    return new CreateBookingRequest(
+        start.toString(), QUICK_CHAT_ID, "Ada Lovelace", "ada@example.com");
   }
 
   private void assertStatus(int expected, HttpRequest<?> request) {
@@ -191,7 +246,7 @@ class BookingFlowTest {
         () -> ex.getResponse().getBody(String.class).orElse(""));
   }
 
-  /** The first bookable instant on a weekday at least 120 days out (beyond the 90-day horizon). */
+  /** The first bookable instant on a weekday at least 120 days out (beyond the 14-day horizon). */
   private Instant nextWeekdayBeyondHorizonAt9() {
     LocalDate date = LocalDate.now(BERLIN).plusDays(120);
     while (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {

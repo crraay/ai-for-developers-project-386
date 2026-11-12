@@ -10,7 +10,7 @@ public class TimeConfig {
 
   /**
    * Steps aside for the {@code fixed-clock} test environment, which provides its own deterministic
-   * Clock (FixedClockConfig in test sources) for tests sensitive to rolling windows like the 90-day
+   * Clock (FixedClockConfig in test sources) for tests sensitive to rolling windows like the 14-day
    * booking horizon.
    */
   @Singleton

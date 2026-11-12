@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <!-- Issue #28: the duration set is now derived from active booking_type rows
+       (see 05-booking-types.xml), so host_settings.allowed_duration_minutes
+       is redundant. Drop the column; the row inserted by 02-schedule is
+       preserved (timezone stays). The two earlier changesets are never
+       edited (the whole series is applied everywhere, in order); this
+       changeset only removes the now-redundant column. -->
+
+  <changeSet id="12-host-settings-drop-allowed-durations" author="callcalendar">
+    <sql>ALTER TABLE host_settings DROP COLUMN allowed_duration_minutes;</sql>
+  </changeSet>
+</databaseChangeLog>

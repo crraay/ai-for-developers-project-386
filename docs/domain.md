@@ -5,8 +5,11 @@ scope per `docs/product.md`.
 
 ## Entities
 
-- **Host settings** (single row): timezone (IANA, e.g. `Europe/Berlin`),
-  allowed durations (a subset of 15 / 30 / 60 minutes).
+- **Host settings** (single row): timezone (IANA, e.g. `Europe/Berlin`).
+- **Booking type** (host-defined, per `GLOSSARY.md`): title, description,
+  duration in minutes (5–240), sort order, visible flag. The guest picks one
+  instead of a bare duration; the duration is derived server-side from the
+  picked type. Seeded: *Quick chat* (30 min) and *Deep dive* (60 min).
 - **Recurring window**: day(s) of week + time-of-day range, expressed as an
   rrule; repeats indefinitely. v1 constraint: an occurrence never crosses
   midnight — its end is its start plus the window length, computed on the
@@ -14,7 +17,8 @@ scope per `docs/product.md`.
 - **One-off window**: a concrete date + start/end time.
 - **Blackout**: a concrete date or date+time interval.
 - **Booking**: guest name, guest email, start, end (stored in UTC), state
-  (`active` | `cancelled`), secret cancellation token.
+  (`active` | `cancelled`), the picked booking type, secret cancellation
+  token.
 
 ## Availability computation
 
@@ -26,12 +30,13 @@ Overlapping windows merge silently; overlap is never an error.
 
 ## Slot generation
 
-For a chosen duration `d` (from the host's allowed set), a valid slot start is:
+For the duration `d` of the chosen booking type, a valid slot start is:
 
 - aligned to a 15-minute boundary (:00, :15, :30, :45),
 - fully contained within availability: `[start, start + d] ⊆ availability`,
 - at least 1 hour in the future,
-- at most 90 days in the future.
+- before the start of the 15th host-local calendar day (the window ends at the end of the 14th
+  calendar day).
 
 ## Invariants
 
@@ -58,11 +63,15 @@ For a chosen duration `d` (from the host's allowed set), a valid slot start is:
 
 ## Constants (v1)
 
-| Constant            | Value            |
-| ------------------- | ---------------- |
-| Booking horizon     | 90 days, rolling |
-| Minimum notice      | 1 hour           |
-| Slot alignment grid | 15 minutes       |
-| Duration options    | 15 / 30 / 60 min |
+| Constant            | Value                                     |
+| ------------------- | ----------------------------------------- |
+| Booking horizon     | 14 calendar days, host-local (ends at start of day 15) |
+| Minimum notice      | 1 hour                                    |
+| Slot alignment grid | 15 minutes                                |
+| Type duration range | 5–240 min (host-defined; seeded 30 / 60)  |
 
 Constants may become host settings later; that is a trivial change by design.
+
+The booking horizon was narrowed from 90 rolling days to 14 calendar days,
+host-local, to match the product decision recorded in the project spec (see
+docs/product.md).

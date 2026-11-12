@@ -26,22 +26,24 @@ public class SlotController {
   }
 
   @Get
-  @Operation(summary = "Available slot start times for a host-local day", operationId = "getSlots")
+  @Operation(
+      summary = "Available slot start times for a host-local day, filtered by booking type",
+      operationId = "getSlots")
   @ApiResponse(responseCode = "200", description = "Slot start times as UTC instants")
   @ApiResponse(
       responseCode = "400",
-      description = "Malformed date or disallowed duration",
+      description = "Malformed date or unknown / inactive bookingTypeId",
       content =
           @Content(
               mediaType = "application/problem+json",
               schema = @Schema(implementation = ProblemDetail.class)))
-  public List<Instant> getSlots(@QueryValue String date, @QueryValue int durationMinutes) {
+  public List<Instant> getSlots(@QueryValue String date, @QueryValue long bookingTypeId) {
     LocalDate parsed;
     try {
       parsed = LocalDate.parse(date);
     } catch (DateTimeParseException e) {
       throw new InvalidRequestException("date must be formatted YYYY-MM-DD");
     }
-    return slotService.slotsFor(parsed, durationMinutes);
+    return slotService.slotsFor(parsed, bookingTypeId);
   }
 }

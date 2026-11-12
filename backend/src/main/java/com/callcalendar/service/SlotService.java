@@ -1,5 +1,6 @@
 package com.callcalendar.service;
 
+import com.callcalendar.domain.BookingType;
 import com.callcalendar.domain.Interval;
 import com.callcalendar.repo.BookingRepository;
 import jakarta.inject.Singleton;
@@ -13,28 +14,32 @@ import java.util.List;
 
 /**
  * Slot generation per docs/domain.md: slot starts are aligned to the 15-minute grid, fully
- * contained in availability, at least 1 hour and at most 90 days in the future, and free of active
- * bookings.
+ * contained in availability, at least 1 hour and at most 14 days in the future, and free of active
+ * bookings. The duration comes from the booking type the guest picked (Issue #28).
  */
 @Singleton
 public class SlotService {
 
   private final AvailabilityService availabilityService;
+  private final BookingTypeService bookingTypeService;
   private final BookingRepository bookingRepository;
   private final Clock clock;
 
   public SlotService(
-      AvailabilityService availabilityService, BookingRepository bookingRepository, Clock clock) {
+      AvailabilityService availabilityService,
+      BookingTypeService bookingTypeService,
+      BookingRepository bookingRepository,
+      Clock clock) {
     this.availabilityService = availabilityService;
+    this.bookingTypeService = bookingTypeService;
     this.bookingRepository = bookingRepository;
     this.clock = clock;
   }
 
-  /** Available slot start instants (UTC) for one host-local day. */
-  public List<Instant> slotsFor(LocalDate date, int durationMinutes) {
-    if (!availabilityService.hostSettings().allowsDuration(durationMinutes)) {
-      throw new InvalidRequestException("durationMinutes is not an allowed duration");
-    }
+  /** Available slot start instants (UTC) for one host-local day and a single booking type. */
+  public List<Instant> slotsFor(LocalDate date, long bookingTypeId) {
+    BookingType type = bookingTypeService.requireActive(bookingTypeId);
+    int durationMinutes = type.durationMinutes();
     ZoneId zone = availabilityService.hostZone();
     Duration duration = Duration.ofMinutes(durationMinutes);
     Instant dayStart = date.atStartOfDay(zone).toInstant();
@@ -42,11 +47,11 @@ public class SlotService {
 
     Instant now = clock.instant();
     // The horizon bounds the start, not the whole slot (docs/domain.md: "a valid
-    // slot start is ... at most 90 days in the future"). BookingService accepts
+    // slot start is ... at most 14 days in the future"). BookingService accepts
     // the same starts, so browse must offer them too.
-    Instant horizon = now.plus(BookingRules.HORIZON);
+    Instant horizon = BookingRules.horizonEnd(zone, now);
     Instant from = max(dayStart, BookingRules.alignUp(now.plus(BookingRules.MIN_NOTICE)));
-    if (!from.isBefore(dayEnd) || from.isAfter(horizon)) {
+    if (!from.isBefore(dayEnd) || !from.isBefore(horizon)) {
       return List.of();
     }
 
@@ -58,7 +63,7 @@ public class SlotService {
 
     List<Instant> slots = new ArrayList<>();
     for (Instant start = from;
-        start.isBefore(dayEnd) && !start.isAfter(horizon);
+        start.isBefore(dayEnd) && start.isBefore(horizon);
         start = start.plus(BookingRules.SLOT_GRID)) {
       Instant end = start.plus(duration);
       if (isFree(windows, busy, start, end)) {

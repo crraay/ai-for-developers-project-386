@@ -8,16 +8,18 @@
       <input
         type="date"
         [value]="date()"
-        [min]="minDate"
-        [max]="maxDate"
+        [min]="minDate()"
+        [max]="maxDate()"
         (change)="onDateChange($event)"
       />
     </label>
     <label class="field">
-      <span class="field-label">Duration</span>
-      <select [value]="duration()" (change)="onDurationChange($event)">
-        @for (option of durations(); track option) {
-          <option [value]="option">{{ option }} minutes</option>
+      <span class="field-label">Booking type</span>
+      <select [value]="bookingTypeId()" (change)="onTypeChange($event)">
+        @for (option of types(); track option.id) {
+          <option [value]="option.id">
+            {{ option.title }} ({{ option.durationMinutes }} min) — {{ option.description }}
+          </option>
         }
       </select>
     </label>
@@ -34,7 +36,7 @@
           <a
             class="slot-link"
             [routerLink]="['/book', slot]"
-            [queryParams]="{ durationMinutes: duration() }"
+            [queryParams]="{ bookingTypeId: bookingTypeId() }"
           >
             {{ formatTime(slot) }}
           </a>

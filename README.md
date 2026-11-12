@@ -54,6 +54,42 @@ cd backend && mise exec -- ./gradlew run
 cd frontend && mise exec -- npm start
 ```
 
+### Data persistence
+
+Bookings survive a normal Docker Compose restart: `docker-compose.yml` mounts the named volume `db-data`, so `docker compose down && docker compose up --build` keeps them. `docker compose down -v` wipes the volume (the CI smoke tests do this to start from a clean database).
+
+On Render, the managed Postgres survives service restarts, but the free instance expires on **2026-12-10** and is recreated then — data is not preserved after that.
+
+### Booking types
+
+What a guest books is one of the **booking types** the host has set up — each
+type carries its own title, description, and duration, and the guest picks one
+instead of choosing a raw duration. The host manages them at
+**http://localhost:4200/host/booking-types**; the two seeded types on a fresh
+database are:
+
+| Order | Title       | Duration |
+| ----- | ----------- | -------- |
+| 10    | Quick chat  | 30 min   |
+| 20    | Deep dive   | 60 min   |
+
+A guest flow that uses both:
+
+1. Open **http://localhost:4200/book**, pick a day, and choose **Deep dive**
+   from the *Booking type* picker.
+2. Click any of the time slots — each one carries the chosen `bookingTypeId`,
+   so picking the same slot with **Quick chat** would show 30-minute windows
+   instead.
+3. Fill in name + email on the confirm form, which now also shows the type's
+   title and description, and submit — the booking is created with that
+   type's duration derived server-side.
+4. On the host view (**/host**), every row shows the type the guest chose
+   (e.g. *"Mon, 03 Nov, 14:00–15:00 · Deep dive"*).
+
+Hiding a type (uncheck *Visible* in the editor) takes it off the guest picker
+without deleting past bookings; deleting it is irreversible but the type label
+stays attached to existing rows.
+
 
 
 ## Deployment
@@ -69,8 +105,12 @@ or PR triggers:
 | Database | Postgres `call-calendar-db` (free) | internal, not exposed |
 
 To deploy: push to `main`, then run the [`deploy`](.github/workflows/deploy.yml)
-workflow by hand (GitHub → Actions → **deploy** → *Run workflow*). It runs the
-same `mise run check` gate CI runs, deploys the backend first and the static site
+workflow by hand (GitHub → Actions → **deploy** → *Run workflow*), selecting
+**`main`** in the branch dropdown — Render builds `main`, so the checked-out code
+and the deployed code must be the same. (The *Run workflow* button is only
+registered once the file exists on the default branch, `dev`; both branches carry
+`deploy.yml`.) The workflow runs the same `mise run check` gate CI runs,
+deploys the backend first and the static site
 second, then verifies the live deployment (API ping, served index, CORS
 preflight).
 

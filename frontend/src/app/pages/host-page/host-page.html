@@ -1,5 +1,8 @@
 <section class="page">
   <h2>Upcoming bookings</h2>
+  <p>
+    <a routerLink="/host/booking-types">Manage booking types</a>
+  </p>
 
   @if (isLoading()) {
     <p class="hint">Loading…</p>
@@ -12,7 +15,7 @@
         <p class="ongoing-label">Happening now</p>
         <p>
           <strong>{{ ongoing.guestName }}</strong> ({{ ongoing.guestEmail }})<br />
-          {{ formatDate(ongoing.start) }},
+          {{ typeTitle(ongoing.bookingTypeId) }} · {{ formatDate(ongoing.start) }},
           {{ formatTimeRange(ongoing.start, ongoing.end) }}
           ({{ formatDuration(ongoing.start, ongoing.end) }})
         </p>
@@ -57,6 +60,7 @@
             <th scope="col">Date</th>
             <th scope="col">Time</th>
             <th scope="col">Duration</th>
+            <th scope="col">Type</th>
             <th scope="col">Name</th>
             <th scope="col">Email</th>
             <th scope="col">Status</th>
@@ -69,6 +73,7 @@
               <td>{{ formatDate(b.start) }}</td>
               <td>{{ formatTimeRange(b.start, b.end) }}</td>
               <td>{{ formatDuration(b.start, b.end) }}</td>
+              <td>{{ typeTitle(b.bookingTypeId) }}</td>
               <td>{{ b.guestName }}</td>
               <td>{{ b.guestEmail }}</td>
               <td>{{ b.state === 'active' ? 'Confirmed' : 'Cancelled' }}</td>
@@ -97,7 +102,7 @@
         <h3>Cancel this booking?</h3>
         <p>
           <strong>{{ pending.guestName }}</strong> ({{ pending.guestEmail }})<br />
-          {{ formatDate(pending.start) }},
+          {{ typeTitle(pending.bookingTypeId) }} · {{ formatDate(pending.start) }},
           {{ formatTimeRange(pending.start, pending.end) }}
           ({{ formatDuration(pending.start, pending.end) }})
         </p>

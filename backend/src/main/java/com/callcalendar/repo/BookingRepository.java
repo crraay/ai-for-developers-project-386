@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,8 +22,18 @@ public class BookingRepository {
   /** SQLState reported by the booking_no_active_overlap exclusion constraint (ADR-0006). */
   private static final String EXCLUSION_VIOLATION = "23P01";
 
+  /**
+   * SQLState Postgres reports when two racing inserts deadlock against each other inside that same
+   * constraint's conflict check instead of one of them getting 23P01 — it aborts one insert as the
+   * victim, reporting "deadlock detected … Where: while checking exclusion constraint … in relation
+   * booking". The victim is the loser of the very same race, so it is refused identically. This
+   * INSERT is a single autocommit statement that locks nothing but its own new row and that
+   * constraint's index, so in practice no other deadlock can reach this catch.
+   */
+  private static final String EXCLUSION_CHECK_DEADLOCK = "40P01";
+
   private static final String BOOKING_COLUMNS =
-      "id, guest_name, guest_email, start_at, end_at, state, cancellation_token";
+      "id, guest_name, guest_email, start_at, end_at, state, booking_type_id, cancellation_token";
 
   private final DataSource dataSource;
 
@@ -31,21 +42,32 @@ public class BookingRepository {
   }
 
   public void insert(
-      String guestName, String guestEmail, Instant start, Instant end, String cancellationToken) {
+      String guestName,
+      String guestEmail,
+      Instant start,
+      Instant end,
+      long bookingTypeId,
+      String cancellationToken) {
     String sql =
-        "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state, cancellation_token)"
-            + " VALUES (?, ?, ?, ?, 'active', ?)";
+        "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state, booking_type_id,"
+            + " cancellation_token) VALUES (?, ?, ?, ?, 'active', ?, ?)";
     try (Connection connection = dataSource.getConnection();
         PreparedStatement statement = connection.prepareStatement(sql)) {
       statement.setString(1, guestName);
       statement.setString(2, guestEmail);
       statement.setTimestamp(3, Timestamp.from(start));
       statement.setTimestamp(4, Timestamp.from(end));
-      statement.setString(5, cancellationToken);
+      if (bookingTypeId > 0) {
+        statement.setLong(5, bookingTypeId);
+      } else {
+        statement.setNull(5, Types.BIGINT);
+      }
+      statement.setString(6, cancellationToken);
       statement.executeUpdate();
     } catch (SQLException e) {
-      if (EXCLUSION_VIOLATION.equals(e.getSQLState())) {
-        throw new SlotUnavailableException("slot no longer available");
+      String sqlState = e.getSQLState();
+      if (EXCLUSION_VIOLATION.equals(sqlState) || EXCLUSION_CHECK_DEADLOCK.equals(sqlState)) {
+        throw new SlotUnavailableException("slot no longer available", e);
       }
       throw new IllegalStateException("failed to insert booking", e);
     }
@@ -141,6 +163,8 @@ public class BookingRepository {
   }
 
   private static Booking readBooking(ResultSet rs) throws SQLException {
+    long bookingTypeId = rs.getLong("booking_type_id");
+    boolean bookingTypeNull = rs.wasNull();
     return new Booking(
         rs.getLong("id"),
         rs.getString("guest_name"),
@@ -148,6 +172,7 @@ public class BookingRepository {
         rs.getTimestamp("start_at").toInstant(),
         rs.getTimestamp("end_at").toInstant(),
         rs.getString("state"),
+        bookingTypeNull ? 0L : bookingTypeId,
         rs.getString("cancellation_token"));
   }
 }

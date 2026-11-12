@@ -15,6 +15,7 @@ function asHostBooking(
     start: string;
     end: string;
     state: 'active' | 'cancelled';
+    bookingTypeId: number;
   }> = {},
 ) {
   const start = new Date(Date.now() + 3 * 3_600_000);
@@ -26,9 +27,15 @@ function asHostBooking(
     start: start.toISOString(),
     end: end.toISOString(),
     state: 'active' as const,
+    bookingTypeId: 1,
     ...overrides,
   };
 }
+
+const TYPES_RESPONSE = [
+  { id: 1, title: 'Quick chat', description: '', durationMinutes: 30, sortOrder: 10, active: true },
+  { id: 2, title: 'Deep dive', description: '', durationMinutes: 60, sortOrder: 20, active: true },
+];
 
 describe('HostPage', () => {
   let httpTesting: HttpTestingController;
@@ -52,10 +59,8 @@ describe('HostPage', () => {
     const fixture = TestBed.createComponent(HostPage);
     fixture.detectChanges();
 
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({
-      timezone: TIMEZONE,
-      allowedDurations: [30],
-    });
+    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({ timezone: TIMEZONE });
+    httpTesting.expectOne('http://localhost:8080/api/host/booking-types').flush(TYPES_RESPONSE);
     httpTesting
       .expectOne('http://localhost:8080/api/bookings')
       .flush([asHostBooking({ id: 42, guestName: 'Ada Lovelace' })]);
@@ -67,6 +72,7 @@ describe('HostPage', () => {
     expect(compiled.textContent).toContain('ada@example.com');
     expect(compiled.textContent).toContain(TIMEZONE);
     expect(compiled.textContent).toContain('30 min');
+    expect(compiled.textContent).toContain('Quick chat');
     // At least one cancel button per row.
     expect(compiled.querySelectorAll('.bookings button.danger').length).toBeGreaterThan(0);
   });
@@ -75,10 +81,8 @@ describe('HostPage', () => {
     const fixture = TestBed.createComponent(HostPage);
     fixture.detectChanges();
 
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({
-      timezone: TIMEZONE,
-      allowedDurations: [30],
-    });
+    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({ timezone: TIMEZONE });
+    httpTesting.expectOne('http://localhost:8080/api/host/booking-types').flush(TYPES_RESPONSE);
     httpTesting
       .expectOne('http://localhost:8080/api/bookings')
       .flush([asHostBooking({ id: 7, state: 'cancelled' })]);
@@ -96,10 +100,8 @@ describe('HostPage', () => {
     const ended = new Date(now.getTime() + 15 * 60_000);
     fixture.detectChanges();
 
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({
-      timezone: TIMEZONE,
-      allowedDurations: [30],
-    });
+    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({ timezone: TIMEZONE });
+    httpTesting.expectOne('http://localhost:8080/api/host/booking-types').flush(TYPES_RESPONSE);
     httpTesting.expectOne('http://localhost:8080/api/bookings').flush([
       asHostBooking({
         id: 9,
@@ -121,10 +123,8 @@ describe('HostPage', () => {
     const fixture = TestBed.createComponent(HostPage);
     fixture.detectChanges();
 
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({
-      timezone: TIMEZONE,
-      allowedDurations: [30],
-    });
+    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({ timezone: TIMEZONE });
+    httpTesting.expectOne('http://localhost:8080/api/host/booking-types').flush(TYPES_RESPONSE);
     httpTesting
       .expectOne('http://localhost:8080/api/bookings')
       .flush([
@@ -154,10 +154,8 @@ describe('HostPage', () => {
     const fixture = TestBed.createComponent(HostPage);
     fixture.detectChanges();
 
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({
-      timezone: TIMEZONE,
-      allowedDurations: [30],
-    });
+    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush({ timezone: TIMEZONE });
+    httpTesting.expectOne('http://localhost:8080/api/host/booking-types').flush(TYPES_RESPONSE);
     httpTesting
       .expectOne('http://localhost:8080/api/bookings')
       .flush(

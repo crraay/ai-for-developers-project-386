@@ -2,6 +2,12 @@
 
 ## Working in this repo
 
+### Commits
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) — enforced by `commitlint.config.mjs` (commit-msg hk hook) and CI (`commitlint` runs over the pushed range).
+
+Commits and PRs reference their ticket. `Refs #<n>` in the commit body points at the issue the change works on; `Closes #<n>` in the PR description closes it once the acceptance criteria are met; `Part of #<map>` covers work bundled under a decision map (see `docs/agents/issue-tracker.md`). An implementation commit without a referenceable issue is an exception — raise it with a human before merging.
+
 Run at most one build command at a time per directory (`gradlew`, `npm`, `docker compose`) — a second concurrent build corrupts shared build/test state.
 
 Agent shells on this machine: `mise` is not on PATH — full path: `C:\Program Files\mise\bin\mise.exe` (it has moved before: if that path is empty, re-find `mise.exe` under `C:\Program Files` and update this line). Prepend `C:\Program Files\mise\bin` to `$env:PATH` before `git commit`/`git push` (hk hooks exec `mise x`) and before running tasks that nest `mise run`. Prefer the `mise run` tasks for builds: bare `gradlew` resolves to this machine's system Java 17 (the build needs 25) and `mise x -- gradlew` fails with "cannot find binary path"; if you must invoke gradlew directly, set `$env:JAVA_HOME = (mise where java)` first.
@@ -15,6 +21,28 @@ The agent shell reports a spurious "exit code 1" whenever a command writes to st
 Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. Change the source (backend annotations / `ng-openapi-gen.json`) and run `mise run generate`; CI fails on stale output.
 
 Lint rules are never disabled to get a change through. Exceptions are narrow (one path, one rule), carry a written reason, and need a human decision.
+
+### Running the application
+
+The fastest way to run the full stack from a clean clone is Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+- Frontend: http://localhost:4200
+- Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
+- PostgreSQL: localhost:5434
+
+For local development without Docker, use the `mise`-wrapped commands already described in `README.md`:
+
+```bash
+# backend (requires a PostgreSQL, e.g. `docker compose up -d db`)
+cd backend && mise exec -- ./gradlew run
+
+# frontend
+cd frontend && mise exec -- npm start
+```
 
 ## Agent skills
 

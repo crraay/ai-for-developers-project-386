@@ -45,39 +45,42 @@ description = "Repo hygiene: typos, secrets, Dockerfiles, workflow lint"
 run = [
   "typos",
   "betterleaks dir --config .betterleaks.toml .",
-  "hadolint backend/Dockerfile frontend/Dockerfile",
+  "hadolint Dockerfile backend/Dockerfile frontend/Dockerfile",
   # Fixed file list on purpose: hexlet-check.yml is managed externally and must
   # not be edited, so it is excluded by omission rather than by an ignore rule.
   "jactionlint .github/workflows/ci.yml .github/workflows/security.yml .github/workflows/release-please.yml .github/workflows/pr-title.yml .github/workflows/deploy.yml",
 ]
 
+[tasks."check:browser"]
+description = "End-to-end browser test: guest books a slot and the host view shows it"
+# The browser test builds the backend and frontend Docker images, so wait for
+# those checks to finish and avoid concurrent gradlew/npm builds touching the
+# same source trees.
+depends = ["check:backend", "check:frontend"]
+run = "npm run test:e2e"
+
 [tasks.check]
-description = "Every check: backend, frontend, contracts, repo hygiene, generated-code freshness"
-depends = ["check:backend", "check:frontend", "check:contracts", "check:repo"]
-# runs only when all four pass: regenerate and verify committed output is fresh
+description = "Every check: backend, frontend, contracts, repo hygiene, browser test, generated-code freshness"
+depends = ["check:backend", "check:frontend", "check:contracts", "check:repo", "check:browser"]
+# runs only when all dependencies pass: regenerate and verify committed output is fresh
 run = "mise run check:generated"
 
 [tasks."check:generated"]
-description = "Fail if committed generated files (openapi/api.yml, frontend/src/app/api) are stale"
+description = "Fail if committed generated files (openapi/api.yml, frontend/src/app/api) are stale or missing"
 depends = ["generate"]
-# The gate is `git diff` (worktree vs index): it passes only once freshly
-# generated output is staged — `git add openapi frontend/src/app/api` after
-# `mise run generate`.
-run = "git diff --exit-code -- openapi frontend/src/app/api"
+# Stage generated paths (including previously untracked files) before diffing
+# against HEAD. A freshly generated client that was never `git add`ed must fail
+# the freshness gate just like a modified one.
+run = "git add -A -- openapi frontend/src/app/api && git diff --cached --exit-code -- openapi frontend/src/app/api"
 
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
 
 [tasks."generate:spec"]
-description = "Regenerate openapi/api.yml from the backend annotations"
-dir = "backend"
-# Clean-room on purpose: against a warm build Gradle reports exportOpenApi
-# UP-TO-DATE and reproduces the stale committed output, so check:generated
-# passed against the very staleness it exists to catch (CI caught it
-# 2026-11-02 on a pristine checkout).
-run = "./gradlew clean exportOpenApi"
-run_windows = "gradlew.bat clean exportOpenApi"
+description = "Regenerate openapi/api.yml from the TypeSpec contract source"
+dir = "typespec"
+run = "npm run compile"
 
 [tasks."generate:client"]
 description = "Regenerate the Angular client from openapi/api.yml"
