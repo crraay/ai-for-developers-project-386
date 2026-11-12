@@ -4,7 +4,7 @@ import java.time.Instant;
 
 /**
  * A guest's reservation of a specific interval. State per glossary: active | cancelled. The {@code
- * meetingTypeId} is the booking type the guest picked; the duration is derived server-side from it
+ * bookingTypeId} is the booking type the guest picked; the duration is derived server-side from it
  * (GLOSSARY.md: "Booking type").
  */
 public record Booking(
@@ -14,7 +14,7 @@ public record Booking(
     Instant start,
     Instant end,
     String state,
-    long meetingTypeId,
+    long bookingTypeId,
     String cancellationToken) {
 
   public static final String STATE_ACTIVE = "active";

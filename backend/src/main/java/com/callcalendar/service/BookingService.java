@@ -43,12 +43,12 @@ public class BookingService {
   }
 
   public Booking create(
-      String startRaw, @Nullable Long meetingTypeIdRaw, String guestName, String guestEmail) {
+      String startRaw, @Nullable Long bookingTypeIdRaw, String guestName, String guestEmail) {
     Instant start = parseStart(startRaw);
-    if (meetingTypeIdRaw == null) {
-      throw new InvalidRequestException("meetingTypeId is required");
+    if (bookingTypeIdRaw == null) {
+      throw new InvalidRequestException("bookingTypeId is required");
     }
-    BookingType type = bookingTypeService.requireActive(meetingTypeIdRaw);
+    BookingType type = bookingTypeService.requireActive(bookingTypeIdRaw);
     int duration = type.durationMinutes();
     if (isBlank(guestName) || isBlank(guestEmail)) {
       throw new InvalidRequestException("guestName and guestEmail are required");
@@ -109,7 +109,7 @@ public class BookingService {
         booking.start(),
         booking.end(),
         Booking.STATE_CANCELLED,
-        booking.meetingTypeId(),
+        booking.bookingTypeId(),
         booking.cancellationToken());
   }
 

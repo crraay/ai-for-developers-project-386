@@ -10,4 +10,5 @@
   <include file="changelog/04-overlap-constraint.xml" relativeToChangelogFile="true"/>
   <include file="changelog/05-booking-types.xml" relativeToChangelogFile="true"/>
   <include file="changelog/06-host-settings-cleanup.xml" relativeToChangelogFile="true"/>
+  <include file="changelog/07-booking-rename-fk-column.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

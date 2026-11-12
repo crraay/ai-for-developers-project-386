@@ -32,18 +32,18 @@ public class SlotController {
   @ApiResponse(responseCode = "200", description = "Slot start times as UTC instants")
   @ApiResponse(
       responseCode = "400",
-      description = "Malformed date or unknown / inactive meetingTypeId",
+      description = "Malformed date or unknown / inactive bookingTypeId",
       content =
           @Content(
               mediaType = "application/problem+json",
               schema = @Schema(implementation = ProblemDetail.class)))
-  public List<Instant> getSlots(@QueryValue String date, @QueryValue long meetingTypeId) {
+  public List<Instant> getSlots(@QueryValue String date, @QueryValue long bookingTypeId) {
     LocalDate parsed;
     try {
       parsed = LocalDate.parse(date);
     } catch (DateTimeParseException e) {
       throw new InvalidRequestException("date must be formatted YYYY-MM-DD");
     }
-    return slotService.slotsFor(parsed, meetingTypeId);
+    return slotService.slotsFor(parsed, bookingTypeId);
   }
 }

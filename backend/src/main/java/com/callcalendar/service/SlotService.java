@@ -37,8 +37,8 @@ public class SlotService {
   }
 
   /** Available slot start instants (UTC) for one host-local day and a single booking type. */
-  public List<Instant> slotsFor(LocalDate date, long meetingTypeId) {
-    BookingType type = bookingTypeService.requireActive(meetingTypeId);
+  public List<Instant> slotsFor(LocalDate date, long bookingTypeId) {
+    BookingType type = bookingTypeService.requireActive(bookingTypeId);
     int durationMinutes = type.durationMinutes();
     ZoneId zone = availabilityService.hostZone();
     Duration duration = Duration.ofMinutes(durationMinutes);

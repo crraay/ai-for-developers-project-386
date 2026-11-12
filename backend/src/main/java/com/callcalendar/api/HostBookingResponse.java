@@ -7,7 +7,7 @@ import io.micronaut.serde.annotation.Serdeable;
  * Bookings payload the host page needs. Mirrors BookingResponse minus the secret cancellation
  * token: the token is meant to be per-guest (docs/domain.md), and listing every guest's token in
  * one unauthenticated response would contradict that. The id is included so the host view can drive
- * host-side cancellation by id (UC-6). {@code meetingTypeId} lets the host page render the booking
+ * host-side cancellation by id (UC-6). {@code bookingTypeId} lets the host page render the booking
  * type of each row (which one the guest chose).
  */
 @Serdeable
@@ -18,7 +18,7 @@ public record HostBookingResponse(
     String start,
     String end,
     String state,
-    long meetingTypeId) {
+    long bookingTypeId) {
 
   public static HostBookingResponse from(Booking booking) {
     return new HostBookingResponse(
@@ -28,6 +28,6 @@ public record HostBookingResponse(
         booking.start().toString(),
         booking.end().toString(),
         booking.state(),
-        booking.meetingTypeId());
+        booking.bookingTypeId());
   }
 }

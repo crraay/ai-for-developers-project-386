@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <!-- Issue #28 code review follow-up: GLOSSARY.md's "Booking type" entry bans
+       the word "meeting" for the booking vocabulary. The 05 changeset already
+       shipped the FK column under the older `meeting_type_id` name; this
+       changeset renames it to `booking_type_id` so the schema vocabulary
+       matches the glossary. Same for the FK and index names.
+
+       The old names are renamed in place — no data is dropped, the values in
+       the column are unchanged. Renaming keeps historical rows loadable
+       regardless of which version ran the original migration. -->
+  <changeSet id="12-booking-rename-fk-column" author="callcalendar">
+    <renameColumn
+      tableName="booking"
+      oldColumnName="meeting_type_id"
+      newColumnName="booking_type_id"
+      columnDataType="BIGINT"
+    />
+    <dropForeignKeyConstraint
+      constraintName="booking_meeting_type_fk"
+      baseTableName="booking"
+    />
+    <addForeignKeyConstraint
+      constraintName="booking_booking_type_fk"
+      baseTableName="booking"
+      baseColumnNames="booking_type_id"
+      referencedTableName="booking_type"
+      referencedColumnNames="id"
+    />
+    <dropIndex
+      tableName="booking"
+      indexName="booking_meeting_type_idx"
+    />
+    <createIndex
+      tableName="booking"
+      indexName="booking_booking_type_idx"
+    >
+      <column name="booking_type_id"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

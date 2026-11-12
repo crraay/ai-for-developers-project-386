@@ -43,7 +43,7 @@ class BookingFlowTest {
   /** Non-hex placeholder on purpose (CODING_STANDARDS: betterleaks flags 32-char hex). */
   private static final String UNKNOWN_TOKEN = "unknown-cancellation-token-000000";
 
-  /** Issue #28: bookings now carry a meetingTypeId; the duration comes from the type. */
+  /** Issue #28: bookings now carry a bookingTypeId; the duration comes from the type. */
   private static final long QUICK_CHAT_ID = 1L;
 
   private static final long DEEP_DIVE_ID = 2L;
@@ -96,7 +96,7 @@ class BookingFlowTest {
             .toBlocking()
             .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
     assertEquals("active", created.state());
-    assertEquals(QUICK_CHAT_ID, created.meetingTypeId());
+    assertEquals(QUICK_CHAT_ID, created.bookingTypeId());
     assertFalse(created.cancellationToken().isBlank());
 
     BookingResponse fetched =
@@ -143,7 +143,7 @@ class BookingFlowTest {
 
   @Test
   void partialOverlapOfDifferentDurationsIsRejected() {
-    // Book a 30-minute slot, then attempt a 60-minute meeting starting 15
+    // Book a 30-minute slot, then attempt a 60-minute booking starting 15
     // minutes in — partial overlap across different durations must 409.
     Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
     client
@@ -187,7 +187,7 @@ class BookingFlowTest {
         HttpRequest.POST(
             "/api/bookings",
             new CreateBookingRequest("not-an-instant", QUICK_CHAT_ID, "Ada", "ada@example.com")));
-    // Issue #28: an unknown meetingTypeId is a 404 (not 400) — the slot is itself valid; it's the
+    // Issue #28: an unknown bookingTypeId is a 404 (not 400) — the slot is itself valid; it's the
     // picked type that is not.
     assertStatus(
         404,
@@ -198,7 +198,7 @@ class BookingFlowTest {
                 999_999L,
                 "Ada",
                 "ada@example.com")));
-    // Missing meetingTypeId is a 400.
+    // Missing bookingTypeId is a 400.
     assertStatus(
         400,
         HttpRequest.POST(
@@ -208,11 +208,11 @@ class BookingFlowTest {
                 null,
                 "Ada",
                 "ada@example.com")));
-    assertStatus(400, HttpRequest.GET("/api/slots?date=2026-13-40&meetingTypeId=1"));
-    // Issue #28: unknown meetingTypeId on the slots endpoint is a 404 (the type doesn't exist);
+    assertStatus(400, HttpRequest.GET("/api/slots?date=2026-13-40&bookingTypeId=1"));
+    // Issue #28: unknown bookingTypeId on the slots endpoint is a 404 (the type doesn't exist);
     // the issue's "400/404 problem+json" leaves either valid. A malformed date is still a 400.
     assertStatus(
-        404, HttpRequest.GET("/api/slots?date=" + nextWeekday() + "&meetingTypeId=999999"));
+        404, HttpRequest.GET("/api/slots?date=" + nextWeekday() + "&bookingTypeId=999999"));
   }
 
   @Test
@@ -222,11 +222,11 @@ class BookingFlowTest {
         404, HttpRequest.create(HttpMethod.POST, "/api/bookings/" + UNKNOWN_TOKEN + "/cancel"));
   }
 
-  private List<Instant> slotsFor(LocalDate date, long meetingTypeId) {
+  private List<Instant> slotsFor(LocalDate date, long bookingTypeId) {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.GET("/api/slots?date=" + date + "&meetingTypeId=" + meetingTypeId),
+            HttpRequest.GET("/api/slots?date=" + date + "&bookingTypeId=" + bookingTypeId),
             new GenericArgument<List<Instant>>() {});
   }
 

@@ -57,7 +57,7 @@ class BookingOverlapTest {
   /** A fixed past instant: raw inserts bypass the booking rules, only the constraint applies. */
   private static final Instant WINDOW_START = Instant.parse("2026-06-01T09:00:00Z");
 
-  /** Issue #28: bookings now carry a meetingTypeId — the two seeded types. */
+  /** Issue #28: bookings now carry a bookingTypeId — the two seeded types. */
   private static final long QUICK_CHAT_ID = 1L;
 
   private static final long DEEP_DIVE_ID = 2L;
@@ -320,7 +320,7 @@ class BookingOverlapTest {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.GET("/api/slots?date=" + date + "&meetingTypeId=" + QUICK_CHAT_ID),
+            HttpRequest.GET("/api/slots?date=" + date + "&bookingTypeId=" + QUICK_CHAT_ID),
             new GenericArgument<List<Instant>>() {});
   }
 

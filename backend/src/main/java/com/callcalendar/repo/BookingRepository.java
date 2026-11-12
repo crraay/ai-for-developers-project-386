@@ -33,7 +33,7 @@ public class BookingRepository {
   private static final String EXCLUSION_CHECK_DEADLOCK = "40P01";
 
   private static final String BOOKING_COLUMNS =
-      "id, guest_name, guest_email, start_at, end_at, state, meeting_type_id, cancellation_token";
+      "id, guest_name, guest_email, start_at, end_at, state, booking_type_id, cancellation_token";
 
   private final DataSource dataSource;
 
@@ -46,10 +46,10 @@ public class BookingRepository {
       String guestEmail,
       Instant start,
       Instant end,
-      long meetingTypeId,
+      long bookingTypeId,
       String cancellationToken) {
     String sql =
-        "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state, meeting_type_id,"
+        "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state, booking_type_id,"
             + " cancellation_token) VALUES (?, ?, ?, ?, 'active', ?, ?)";
     try (Connection connection = dataSource.getConnection();
         PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -57,8 +57,8 @@ public class BookingRepository {
       statement.setString(2, guestEmail);
       statement.setTimestamp(3, Timestamp.from(start));
       statement.setTimestamp(4, Timestamp.from(end));
-      if (meetingTypeId > 0) {
-        statement.setLong(5, meetingTypeId);
+      if (bookingTypeId > 0) {
+        statement.setLong(5, bookingTypeId);
       } else {
         statement.setNull(5, Types.BIGINT);
       }
@@ -163,8 +163,8 @@ public class BookingRepository {
   }
 
   private static Booking readBooking(ResultSet rs) throws SQLException {
-    long meetingTypeId = rs.getLong("meeting_type_id");
-    boolean meetingTypeNull = rs.wasNull();
+    long bookingTypeId = rs.getLong("booking_type_id");
+    boolean bookingTypeNull = rs.wasNull();
     return new Booking(
         rs.getLong("id"),
         rs.getString("guest_name"),
@@ -172,7 +172,7 @@ public class BookingRepository {
         rs.getTimestamp("start_at").toInstant(),
         rs.getTimestamp("end_at").toInstant(),
         rs.getString("state"),
-        meetingTypeNull ? 0L : meetingTypeId,
+        bookingTypeNull ? 0L : bookingTypeId,
         rs.getString("cancellation_token"));
   }
 }

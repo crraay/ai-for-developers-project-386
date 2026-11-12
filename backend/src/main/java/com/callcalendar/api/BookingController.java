@@ -36,7 +36,7 @@ public class BookingController {
       content = @Content(schema = @Schema(implementation = BookingResponse.class)))
   @ApiResponse(
       responseCode = "400",
-      description = "Malformed body, missing meetingTypeId, or inactive booking type",
+      description = "Malformed body, missing bookingTypeId, or inactive booking type",
       content =
           @Content(
               mediaType = "application/problem+json",
@@ -53,7 +53,7 @@ public class BookingController {
         BookingResponse.from(
             bookingService.create(
                 request.start(),
-                request.meetingTypeId(),
+                request.bookingTypeId(),
                 request.guestName(),
                 request.guestEmail())));
   }

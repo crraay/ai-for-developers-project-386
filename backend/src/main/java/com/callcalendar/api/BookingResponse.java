@@ -11,7 +11,7 @@ public record BookingResponse(
     String start,
     String end,
     String state,
-    long meetingTypeId,
+    long bookingTypeId,
     String cancellationToken) {
 
   public static BookingResponse from(Booking booking) {
@@ -21,7 +21,7 @@ public record BookingResponse(
         booking.start().toString(),
         booking.end().toString(),
         booking.state(),
-        booking.meetingTypeId(),
+        booking.bookingTypeId(),
         booking.cancellationToken());
   }
 }

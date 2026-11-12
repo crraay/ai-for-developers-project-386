@@ -10,4 +10,4 @@ import io.micronaut.serde.annotation.Serdeable;
  */
 @Serdeable
 public record CreateBookingRequest(
-    String start, @Nullable Long meetingTypeId, String guestName, String guestEmail) {}
+    String start, @Nullable Long bookingTypeId, String guestName, String guestEmail) {}
