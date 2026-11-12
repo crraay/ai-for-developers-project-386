@@ -126,8 +126,8 @@ export class HostPage {
     return durationLabel(start, end);
   }
 
-  protected typeTitle(meetingTypeId: number): string {
-    return this.types().get(meetingTypeId)?.title ?? '—';
+  protected typeTitle(bookingTypeId: number): string {
+    return this.types().get(bookingTypeId)?.title ?? '—';
   }
 
   protected openCancelDialog(b: HostBookingResponse): void {

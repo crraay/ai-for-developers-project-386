@@ -22,7 +22,7 @@ export class BookPage {
   protected readonly maxDate = toDateString(addDays(new Date(), 14));
   protected readonly date = signal(this.minDate);
   protected readonly types = signal<BookingTypeResponse[]>([]);
-  protected readonly typeId = signal<number | null>(null);
+  protected readonly bookingTypeId = signal<number | null>(null);
   protected readonly slots = signal<string[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly formatTime = formatLocalTime;
@@ -31,7 +31,7 @@ export class BookPage {
     this.api.invoke(listActiveBookingTypes).subscribe({
       next: (types) => {
         this.types.set(types);
-        this.typeId.set(types[0]?.id ?? null);
+        this.bookingTypeId.set(types[0]?.id ?? null);
         this.loadSlots();
       },
       error: () => this.error.set('Could not load booking types.'),
@@ -46,22 +46,17 @@ export class BookPage {
 
   protected onTypeChange(event: Event): void {
     const value = Number((event.target as HTMLSelectElement).value);
-    this.typeId.set(value);
+    this.bookingTypeId.set(value);
     this.loadSlots();
   }
 
-  protected durationFor(id: number | null): number | null {
-    if (id === null) return null;
-    return this.types().find((t) => t.id === id)?.durationMinutes ?? null;
-  }
-
   private loadSlots(): void {
-    const id = this.typeId();
+    const id = this.bookingTypeId();
     if (id === null) {
       return;
     }
     this.error.set(null);
-    this.api.invoke(getSlots, { date: this.date(), meetingTypeId: id }).subscribe({
+    this.api.invoke(getSlots, { date: this.date(), bookingTypeId: id }).subscribe({
       next: (starts) => this.slots.set(starts),
       error: () => {
         this.slots.set([]);

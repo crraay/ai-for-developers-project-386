@@ -15,7 +15,7 @@ function asHostBooking(
     start: string;
     end: string;
     state: 'active' | 'cancelled';
-    meetingTypeId: number;
+    bookingTypeId: number;
   }> = {},
 ) {
   const start = new Date(Date.now() + 3 * 3_600_000);
@@ -27,7 +27,7 @@ function asHostBooking(
     start: start.toISOString(),
     end: end.toISOString(),
     state: 'active' as const,
-    meetingTypeId: 1,
+    bookingTypeId: 1,
     ...overrides,
   };
 }
