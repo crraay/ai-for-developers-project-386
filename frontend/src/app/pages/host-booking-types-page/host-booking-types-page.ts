@@ -182,10 +182,6 @@ export class HostBookingTypesPage {
     });
   }
 
-  protected isConfirmingDelete(id: number): boolean {
-    return this.confirmingDeleteId() === id;
-  }
-
   @ViewChild('deleteDialog') private deleteDialog?: ElementRef<HTMLDialogElement>;
 }
 
