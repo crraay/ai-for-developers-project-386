@@ -21,8 +21,14 @@ export class BookFormPage {
   private readonly router = inject(Router);
 
   protected readonly start: string = this.route.snapshot.paramMap.get('start') ?? '';
-  protected readonly meetingTypeId: number = this.parseMeetingTypeId();
+  /**
+   * The id parsed from the query string. null means the link itself is bad (hand-typed,
+   * stale from before Issue #28, or just malformed) — never fall back to a default id.
+   */
+  protected readonly bookingTypeId = signal<number | null>(this.parseBookingTypeId());
   protected readonly type = signal<BookingTypeResponse | null>(null);
+  /** Set once we know the link is missing a valid type — blocks submission. */
+  protected readonly missingType = signal(false);
   protected readonly formatDateTime = formatLocalDateTime;
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -31,19 +37,24 @@ export class BookFormPage {
   guestEmail = '';
 
   constructor() {
+    const id = this.bookingTypeId();
+    if (id === null) {
+      this.missingType.set(true);
+      return;
+    }
     this.api.invoke(listActiveBookingTypes).subscribe({
-      next: (types) => {
-        const match = types.find((t) => t.id === this.meetingTypeId) ?? null;
-        this.type.set(match);
-      },
-      // The summary falls back to a plain time + minutes window if the lookup
-      // fails; submitting still succeeds because the server validates the id.
+      next: (types) => this.type.set(types.find((t) => t.id === id) ?? null),
+      // A failed lookup keeps the parsed id; the server validates it on submit.
       error: () => this.type.set(null),
     });
   }
 
   protected submit(): void {
-    if (this.submitting() || this.guestName.trim() === '' || this.guestEmail.trim() === '') {
+    const id = this.bookingTypeId();
+    if (this.submitting() || id === null) {
+      return;
+    }
+    if (this.guestName.trim() === '' || this.guestEmail.trim() === '') {
       return;
     }
     this.submitting.set(true);
@@ -52,7 +63,7 @@ export class BookFormPage {
       .invoke(createBooking, {
         body: {
           start: this.start,
-          meetingTypeId: this.meetingTypeId,
+          bookingTypeId: id,
           guestName: this.guestName,
           guestEmail: this.guestEmail,
         },
@@ -66,8 +77,8 @@ export class BookFormPage {
       });
   }
 
-  private parseMeetingTypeId(): number {
-    const raw = Number(this.route.snapshot.queryParamMap.get('meetingTypeId'));
-    return Number.isFinite(raw) && raw > 0 ? raw : 1;
+  private parseBookingTypeId(): number | null {
+    const raw = Number(this.route.snapshot.queryParamMap.get('bookingTypeId'));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
   }
 }

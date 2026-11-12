@@ -28,11 +28,17 @@ const ACTIVE_TYPES = [
   },
 ];
 
+/**
+ * Query params handed to the component. Set to `{}` in a test to simulate a link
+ * that arrived without a bookingTypeId; defaults to a valid id.
+ */
+let queryParamMap: Record<string, string> = { bookingTypeId: '1' };
+
 function activatedRouteStub(): ActivatedRoute {
   return {
     snapshot: {
       paramMap: convertToParamMap({ start: START }),
-      queryParamMap: convertToParamMap({ meetingTypeId: '1' }),
+      queryParamMap: convertToParamMap(queryParamMap),
     },
   } as unknown as ActivatedRoute;
 }
@@ -41,6 +47,7 @@ describe('BookFormPage', () => {
   let httpTesting: HttpTestingController;
 
   beforeEach(async () => {
+    queryParamMap = { bookingTypeId: '1' };
     await TestBed.configureTestingModule({
       imports: [BookFormPage],
       providers: [
@@ -107,7 +114,7 @@ describe('BookFormPage', () => {
     const request = httpTesting.expectOne('http://localhost:8080/api/bookings');
     expect(request.request.body).toEqual({
       start: START,
-      meetingTypeId: 1,
+      bookingTypeId: 1,
       guestName: 'Ada Lovelace',
       guestEmail: 'ada@example.com',
     });
@@ -121,6 +128,21 @@ describe('BookFormPage', () => {
     });
 
     expect(navigate).toHaveBeenCalledWith(['/booking', TOKEN]);
+  });
+
+  it('blocks submission when the link has no booking type', () => {
+    // A link without a bookingTypeId (hand-typed or stale) must never fall back
+    // to a default type: show the guard instead of the form.
+    queryParamMap = {};
+
+    const fixture = TestBed.createComponent(BookFormPage);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('missing a booking type');
+    expect(compiled.querySelector('form')).toBeNull();
+    expect(compiled.querySelector('a[routerlink="/book"]')).not.toBeNull();
+    httpTesting.expectNone('http://localhost:8080/api/booking-types');
   });
 
   it('shows the problem detail when the slot is gone', async () => {

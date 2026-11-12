@@ -1,40 +1,47 @@
 <section class="page">
   <h2>Confirm your booking</h2>
-  @if (type(); as chosen) {
-    <p class="summary">
-      {{ formatDateTime(start) }} · {{ chosen.title }} ({{ chosen.durationMinutes }} min)
+  @if (missingType()) {
+    <p class="error" role="alert">
+      This link is missing a booking type — pick one on the booking page to continue.
     </p>
-    @if (chosen.description) {
-      <p class="hint">{{ chosen.description }}</p>
-    }
+    <p><a routerLink="/book">Pick a booking type and time</a></p>
   } @else {
-    <p class="summary">{{ formatDateTime(start) }}</p>
+    @if (type(); as chosen) {
+      <p class="summary">
+        {{ formatDateTime(start) }} · {{ chosen.title }} ({{ chosen.durationMinutes }} min)
+      </p>
+      @if (chosen.description) {
+        <p class="hint">{{ chosen.description }}</p>
+      }
+    } @else {
+      <p class="summary">{{ formatDateTime(start) }}</p>
+    }
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <form #bookingForm="ngForm" (ngSubmit)="submit()">
+      <label class="field">
+        <span class="field-label">Your name</span>
+        <input type="text" name="guestName" [(ngModel)]="guestName" autocomplete="name" required />
+      </label>
+      <label class="field">
+        <span class="field-label">Your email</span>
+        <input
+          type="email"
+          name="guestEmail"
+          [(ngModel)]="guestEmail"
+          autocomplete="email"
+          required
+          email
+        />
+      </label>
+      <button class="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
+        Confirm booking
+      </button>
+    </form>
+
+    <p><a routerLink="/book">Pick another time</a></p>
   }
-
-  @if (error()) {
-    <p class="error" role="alert">{{ error() }}</p>
-  }
-
-  <form #bookingForm="ngForm" (ngSubmit)="submit()">
-    <label class="field">
-      <span class="field-label">Your name</span>
-      <input type="text" name="guestName" [(ngModel)]="guestName" autocomplete="name" required />
-    </label>
-    <label class="field">
-      <span class="field-label">Your email</span>
-      <input
-        type="email"
-        name="guestEmail"
-        [(ngModel)]="guestEmail"
-        autocomplete="email"
-        required
-        email
-      />
-    </label>
-    <button class="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
-      Confirm booking
-    </button>
-  </form>
-
-  <p><a routerLink="/book">Pick another time</a></p>
 </section>
