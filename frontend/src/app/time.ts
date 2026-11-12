@@ -42,3 +42,42 @@ export function addDays(date: Date, days: number): Date {
   copy.setDate(copy.getDate() + days);
   return copy;
 }
+
+/**
+ * The current calendar date in the given IANA timezone, as a yyyy-mm-dd string.
+ * Used for the booking calendar bounds so the window is interpreted in the host's timezone,
+ * matching the server's horizon rule (docs/domain.md).
+ */
+export function dateInTimeZone(timeZone: string, date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  return parts
+    .filter((part) => part.type === 'year' || part.type === 'month' || part.type === 'day')
+    .map((part) => part.value)
+    .join('-');
+}
+
+/**
+ * Add calendar days to a yyyy-mm-dd date string that is interpreted in the given IANA timezone.
+ */
+export function addDaysToDateString(dateString: string, days: number, timeZone: string): string {
+  const [year, month, day] = dateString.split('-').map((value) => parseInt(value, 10));
+  // Start at noon UTC for the given calendar date, then nudge until the formatted host-local date
+  // matches. This keeps the instant safely inside the intended day before adding days.
+  const MAX_NUDGE_ITERATIONS = 3;
+  let instant = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  for (let i = 0; i < MAX_NUDGE_ITERATIONS; i++) {
+    const formatted = dateInTimeZone(timeZone, instant);
+    if (formatted === dateString) break;
+    const [fy, fm, fd] = formatted.split('-').map((value) => parseInt(value, 10));
+    instant = new Date(
+      instant.getTime() + (Date.UTC(year, month - 1, day) - Date.UTC(fy, fm - 1, fd)),
+    );
+  }
+  instant.setUTCDate(instant.getUTCDate() + days);
+  return dateInTimeZone(timeZone, instant);
+}

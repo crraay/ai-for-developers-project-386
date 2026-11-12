@@ -71,6 +71,7 @@ class BookingFlowTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/api/host-settings"), HostSettingsResponse.class);
     assertEquals("Europe/Berlin", settings.timezone());
+    assertEquals(14, settings.bookingHorizonDays());
   }
 
   @Test

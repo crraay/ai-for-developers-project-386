@@ -17,8 +17,8 @@ import java.time.ZoneOffset;
 public class FixedClockConfig {
 
   /**
-   * 2026-10-16T13:10Z: the horizon lands at 2026-10-30T13:10Z (14:10 Berlin, Friday — CET after the
-   * Oct 25 DST change), cutting the seeded 09:00-17:00 window mid-day.
+   * 2026-10-16T13:10Z: the 14th host-local calendar day from then ends at the start of 2026-10-31
+   * Berlin, which is 2026-10-30T23:00Z (CET after the Oct 25 DST change).
    */
   @Singleton
   Clock clock() {

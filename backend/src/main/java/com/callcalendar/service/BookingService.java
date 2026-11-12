@@ -115,12 +115,13 @@ public class BookingService {
 
   private void validateBookable(Instant start, Instant end) {
     Instant now = clock.instant();
+    Instant horizon = BookingRules.horizonEnd(availabilityService.hostZone(), now);
     // Every non-bookable reason shares the product's single "slot no longer
     // available" copy (taken, past, too soon, beyond horizon, off-grid, outside
     // availability); only the DB constraint enforces the taken case.
     if (!BookingRules.isAligned(start)
         || start.isBefore(now.plus(BookingRules.MIN_NOTICE))
-        || start.isAfter(now.plus(BookingRules.HORIZON))) {
+        || !start.isBefore(horizon)) {
       throw new SlotUnavailableException("slot no longer available");
     }
     List<Interval> windows =

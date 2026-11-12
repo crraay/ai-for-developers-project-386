@@ -49,9 +49,9 @@ public class SlotService {
     // The horizon bounds the start, not the whole slot (docs/domain.md: "a valid
     // slot start is ... at most 14 days in the future"). BookingService accepts
     // the same starts, so browse must offer them too.
-    Instant horizon = now.plus(BookingRules.HORIZON);
+    Instant horizon = BookingRules.horizonEnd(zone, now);
     Instant from = max(dayStart, BookingRules.alignUp(now.plus(BookingRules.MIN_NOTICE)));
-    if (!from.isBefore(dayEnd) || from.isAfter(horizon)) {
+    if (!from.isBefore(dayEnd) || !from.isBefore(horizon)) {
       return List.of();
     }
 
@@ -63,7 +63,7 @@ public class SlotService {
 
     List<Instant> slots = new ArrayList<>();
     for (Instant start = from;
-        start.isBefore(dayEnd) && !start.isAfter(horizon);
+        start.isBefore(dayEnd) && start.isBefore(horizon);
         start = start.plus(BookingRules.SLOT_GRID)) {
       Instant end = start.plus(duration);
       if (isFree(windows, busy, start, end)) {

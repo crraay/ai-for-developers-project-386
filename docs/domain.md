@@ -35,7 +35,8 @@ For the duration `d` of the chosen booking type, a valid slot start is:
 - aligned to a 15-minute boundary (:00, :15, :30, :45),
 - fully contained within availability: `[start, start + d] ⊆ availability`,
 - at least 1 hour in the future,
-- at most 14 days in the future.
+- before the start of the 15th host-local calendar day (the window ends at the end of the 14th
+  calendar day).
 
 ## Invariants
 
@@ -64,12 +65,13 @@ For the duration `d` of the chosen booking type, a valid slot start is:
 
 | Constant            | Value                                     |
 | ------------------- | ----------------------------------------- |
-| Booking horizon     | 14 days, rolling                          |
+| Booking horizon     | 14 calendar days, host-local (ends at start of day 15) |
 | Minimum notice      | 1 hour                                    |
 | Slot alignment grid | 15 minutes                                |
 | Type duration range | 5–240 min (host-defined; seeded 30 / 60)  |
 
 Constants may become host settings later; that is a trivial change by design.
 
-The booking horizon was widened from 90 days to 14 days to match the product
-decision recorded in the project spec (see docs/product.md).
+The booking horizon was narrowed from 90 rolling days to 14 calendar days,
+host-local, to match the product decision recorded in the project spec (see
+docs/product.md).

@@ -142,7 +142,7 @@ paths:
     get:
       tags:
       - host-settings
-      summary: "Public host settings: timezone"
+      summary: "Public host settings: timezone and booking horizon"
       operationId: getHostSettings
       responses:
         "200":
@@ -460,13 +460,17 @@ components:
         \ page render the booking type of each row (which one the guest chose)."
     HostSettingsResponse:
       required:
+      - bookingHorizonDays
       - timezone
       type: object
       properties:
         timezone:
           type: string
-      description: "Public host settings the guest UI needs: timezone. Allowed durations\
-        \ now live in booking_type."
+        bookingHorizonDays:
+          type: integer
+          format: int32
+      description: "Public host settings the guest UI needs: timezone and the number\
+        \ of calendar days a guest can book ahead. Allowed durations now live in booking_type."
     ProblemDetail:
       required:
       - detail

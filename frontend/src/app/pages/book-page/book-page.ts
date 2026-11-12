@@ -1,11 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { Api } from '../../api/api';
 import { listActiveBookingTypes } from '../../api/fn/booking-types/list-active-booking-types';
+import { getHostSettings } from '../../api/fn/host-settings/get-host-settings';
 import { getSlots } from '../../api/fn/slots/get-slots';
 import type { BookingTypeResponse } from '../../api/models/booking-type-response';
-import { addDays, formatLocalTime, localTimeZone, toDateString } from '../../time';
+import { addDaysToDateString, dateInTimeZone, formatLocalTime, localTimeZone } from '../../time';
 
 /** UC-2: pick a day and booking type, browse available start times. */
 @Component({
@@ -18,9 +20,9 @@ export class BookPage {
   private readonly api = inject(Api);
 
   protected readonly timeZone = localTimeZone();
-  protected readonly minDate = toDateString(new Date());
-  protected readonly maxDate = toDateString(addDays(new Date(), 14));
-  protected readonly date = signal(this.minDate);
+  protected readonly minDate = signal<string | null>(null);
+  protected readonly maxDate = signal<string | null>(null);
+  protected readonly date = signal<string>('');
   protected readonly types = signal<BookingTypeResponse[]>([]);
   protected readonly bookingTypeId = signal<number | null>(null);
   protected readonly slots = signal<string[]>([]);
@@ -28,13 +30,22 @@ export class BookPage {
   protected readonly formatTime = formatLocalTime;
 
   constructor() {
-    this.api.invoke(listActiveBookingTypes).subscribe({
-      next: (types) => {
+    forkJoin({
+      settings: this.api.invoke(getHostSettings),
+      types: this.api.invoke(listActiveBookingTypes),
+    }).subscribe({
+      next: ({ settings, types }) => {
+        const hostZone = settings.timezone;
+        const today = dateInTimeZone(hostZone);
+        const horizonDate = addDaysToDateString(today, settings.bookingHorizonDays, hostZone);
+        this.minDate.set(today);
+        this.maxDate.set(horizonDate);
+        this.date.set(today);
         this.types.set(types);
         this.bookingTypeId.set(types[0]?.id ?? null);
         this.loadSlots();
       },
-      error: () => this.error.set('Could not load booking types.'),
+      error: () => this.error.set('Could not load booking settings.'),
     });
   }
 

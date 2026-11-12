@@ -1,6 +1,7 @@
 package com.callcalendar.api;
 
 import com.callcalendar.service.AvailabilityService;
+import com.callcalendar.service.BookingRules;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,12 +21,15 @@ public class HostSettingsController {
   }
 
   @Get
-  @Operation(summary = "Public host settings: timezone", operationId = "getHostSettings")
+  @Operation(
+      summary = "Public host settings: timezone and booking horizon",
+      operationId = "getHostSettings")
   @ApiResponse(
       responseCode = "200",
       description = "Host settings",
       content = @Content(schema = @Schema(implementation = HostSettingsResponse.class)))
   public HostSettingsResponse getHostSettings() {
-    return new HostSettingsResponse(availabilityService.hostSettings().timezone());
+    return new HostSettingsResponse(
+        availabilityService.hostSettings().timezone(), BookingRules.HORIZON_DAYS);
   }
 }
