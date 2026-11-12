@@ -20,16 +20,16 @@ project).
 
 ### UC-1: Host configures availability
 
-The host sets their timezone, picks allowed durations (subset of 15/30/60 min),
-and manages availability: recurring windows (weekly, via rrule), one-off
-windows, and blackouts.
+The host sets their timezone, defines the booking types guests can pick from
+(title, description, duration — see `GLOSSARY.md`), and manages availability:
+recurring windows (weekly, via rrule), one-off windows, and blackouts.
 
 - When a new blackout overlaps existing active bookings, the host must choose:
   abort the blackout, or save it and cancel the overlapping bookings.
 
 ### UC-2: Guest browses available slots
 
-The guest picks a day and a duration, and sees the available start times,
+The guest picks a day and a booking type, and sees the available start times,
 rendered in their own browser timezone, clearly labeled.
 
 ### UC-3: Guest books a slot
@@ -57,7 +57,7 @@ shows:
   cancel affordance is deliberate, not an oversight.
 - The **upcoming list** (`start_at > now`), sorted soonest-first, with columns
   for date, start–end timeslot (rendered in the host's configured timezone,
-  labelled), duration, guest name, guest email, state.
+  labelled), booking type, guest name, guest email, state.
 - **Filter bubbles** `All` / `Active` / `Cancelled` above the list. Filtering is
   done client-side; the result set is bounded by the 14-day horizon. The
   default is `All`; empty-state copy reflects the active filter ("No active
@@ -84,10 +84,20 @@ Semantics mirror the guest-side cancellation: idempotent if the booking is
 already cancelled (200), 409 if the booking has started (race against the
 invariant).
 
+### UC-7: Host manages booking types
+
+The host manages the booking types the guest picks from, at
+`/host/booking-types`: create, edit (title, description, duration, sort order,
+visible/hidden), and delete. Hiding a type removes it from the guest picker
+without touching past bookings; deleting is permanent for the row itself.
+The CRUD surface is `GET/POST /api/host/booking-types` and
+`PUT/DELETE /api/host/booking-types/{id}`; the guest sees only the public
+`GET /api/booking-types` (visible rows).
+
 ## First milestone: walking skeleton
 
 The first spec proves the thinnest end-to-end path: **UC-2 + UC-3 + UC-4 over
-seeded data** (one recurring window, one allowed duration, no blackouts, host
+seeded data** (one recurring window, one booking type, no blackouts, host
 timezone from config), persisted in PostgreSQL, runnable via
 `docker compose up`. It proves stack wiring, slot generation, the
 double-booking invariant, and cancellation — before any host UI exists.

@@ -70,8 +70,8 @@ database are:
 A guest flow that uses both:
 
 1. Open **http://localhost:4200/book**, pick a day, and choose **Deep dive**
-   from the *Meeting type* picker.
-2. Click any of the time slots — each one carries the chosen `meetingTypeId`,
+   from the *Booking type* picker.
+2. Click any of the time slots — each one carries the chosen `bookingTypeId`,
    so picking the same slot with **Quick chat** would show 30-minute windows
    instead.
 3. Fill in name + email on the confirm form, which now also shows the type's
