@@ -54,6 +54,12 @@ cd backend && mise exec -- ./gradlew run
 cd frontend && mise exec -- npm start
 ```
 
+### Data persistence
+
+Bookings survive a normal Docker Compose restart: `docker-compose.yml` mounts the named volume `db-data`, so `docker compose down && docker compose up --build` keeps them. `docker compose down -v` wipes the volume (the CI smoke tests do this to start from a clean database).
+
+On Render, the managed Postgres survives service restarts, but the free instance expires on **2026-12-10** and is recreated then — data is not preserved after that.
+
 ### Booking types
 
 What a guest books is one of the **booking types** the host has set up — each

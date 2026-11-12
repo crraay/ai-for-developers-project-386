@@ -22,6 +22,28 @@ Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never 
 
 Lint rules are never disabled to get a change through. Exceptions are narrow (one path, one rule), carry a written reason, and need a human decision.
 
+### Running the application
+
+The fastest way to run the full stack from a clean clone is Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+- Frontend: http://localhost:4200
+- Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
+- PostgreSQL: localhost:5434
+
+For local development without Docker, use the `mise`-wrapped commands already described in `README.md`:
+
+```bash
+# backend (requires a PostgreSQL, e.g. `docker compose up -d db`)
+cd backend && mise exec -- ./gradlew run
+
+# frontend
+cd frontend && mise exec -- npm start
+```
+
 ## Agent skills
 
 ### Issue tracker
