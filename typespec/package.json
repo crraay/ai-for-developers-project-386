@@ -1,0 +1,16 @@
+{
+  "name": "@call-calendar/typespec",
+  "private": true,
+  "description": "TypeSpec source of truth for the Call Calendar OpenAPI contract.",
+  "scripts": {
+    "compile": "tsp compile .",
+    "format": "tsp format ."
+  },
+  "packageManager": "npm@11.19.1",
+  "devDependencies": {
+    "@typespec/compiler": "^1.18.0",
+    "@typespec/http": "^1.18.0",
+    "@typespec/openapi": "^1.18.0",
+    "@typespec/openapi3": "^1.18.0"
+  }
+}

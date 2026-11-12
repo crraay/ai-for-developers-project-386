@@ -1,5 +1,8 @@
 # OpenAPI: code-first spec, ng-openapi-gen client, committed generated code
 
+> **Status: superseded by ADR-0008.** The contract source moved to TypeSpec; the
+> backend annotations are now non-authoritative. This ADR is kept for history.
+
 The API contract is generated **code-first**: Micronaut controller annotations
 produce `openapi/api.yml` at compile time (micronaut-openapi 7.x, exported by
 the `exportOpenApi` Gradle task), and the Angular client is generated from that

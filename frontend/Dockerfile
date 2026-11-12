@@ -7,9 +7,11 @@ COPY package.json package-lock.json ./
 # `npm ci` reads from and writes to `/root/.npm`; mounting it as a cache
 # avoids re-downloading the same lockfile-resolved tree on every CI run.
 RUN --mount=type=cache,target=/root/.npm npm ci
+ARG CONFIGURATION=production
 COPY . .
-RUN npm run build
+RUN npm run build -- --configuration=${CONFIGURATION}
 
 FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 EXPOSE 80

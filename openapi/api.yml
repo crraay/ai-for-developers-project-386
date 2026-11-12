@@ -1,323 +1,321 @@
-openapi: 3.0.1
+openapi: 3.0.0
 info:
   title: call-calendar
-  description: "Booking calendar API: hosts publish availability, guests book call\
-    \ slots."
-  version: "0.1"
-servers:
-- url: /
+  version: '0.1'
+  description: 'Booking calendar API: hosts publish availability, guests book call slots.'
 tags:
-- name: ping
-  description: Connectivity check
-- name: slots
-  description: Browsing available slots
-- name: booking
-  description: Booking and cancelling slots
-- name: booking-types
-  description: Host-defined booking types the guest picks
-- name: host-settings
-  description: Public host settings
+  - name: ping
+    description: Connectivity check
+  - name: slots
+    description: Browsing available slots
+  - name: booking
+    description: Booking and cancelling slots
+  - name: booking-types
+    description: Host-defined booking types the guest picks
+  - name: host-bookings
+    description: Host-only booking operations
+  - name: host-settings
+    description: Public host settings
 paths:
   /api/booking-types:
     get:
-      tags:
-      - booking-types
-      summary: Active booking types for the guest picker
       operationId: listActiveBookingTypes
+      summary: Active booking types for the guest picker
+      parameters: []
       responses:
-        "200":
-          description: "Active types, sorted for the picker (lowest sort_order first)"
+        '200':
+          description: Active types, sorted for the picker (lowest sort_order first)
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/BookingTypeResponse"
+                  $ref: '#/components/schemas/BookingTypeResponse'
+      tags:
+        - booking-types
   /api/bookings:
     get:
-      tags:
-      - booking
-      summary: List upcoming bookings
       operationId: listBookings
+      summary: List upcoming bookings
+      parameters: []
       responses:
-        "200":
-          description: "Bookings with end_at > now, both states, sorted by start_at\
-            \ ascending. The host UI splits the response into a 'Happening now' section\
-            \ (start <= now < end) and the upcoming list (start > now)."
+        '200':
+          description: Bookings with end_at > now, both states, sorted by start_at ascending. The host UI splits the response into a 'Happening now' section (start <= now < end) and the upcoming list (start > now).
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/HostBookingResponse"
-    post:
+                  $ref: '#/components/schemas/HostBookingResponse'
       tags:
-      - booking
-      summary: Book an available slot
+        - booking
+    post:
       operationId: createBooking
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateBookingRequest"
-        required: true
+      summary: Book an available slot
+      parameters: []
       responses:
-        "201":
+        '201':
           description: Booking created; cancellationToken unlocks UC-4
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BookingResponse"
-        "400":
-          description: "Malformed body, missing bookingTypeId, or inactive booking\
-            \ type"
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Malformed body, missing bookingTypeId, or inactive booking type
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
-        "409":
-          description: "Slot no longer available (taken, past, too soon, or outside\
-            \ availability)"
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
+          description: Slot no longer available (taken, past, too soon, or outside availability)
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/ProblemDetail'
+      tags:
+        - booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
   /api/bookings/{token}:
     get:
-      tags:
-      - booking
-      summary: Booking details by secret cancellation token
       operationId: getBooking
+      summary: Booking details by secret cancellation token
       parameters:
-      - name: token
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
-        "200":
+        '200':
           description: The booking
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BookingResponse"
-        "404":
+                $ref: '#/components/schemas/BookingResponse'
+        '404':
           description: No booking for this token
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/ProblemDetail'
+      tags:
+        - booking
   /api/bookings/{token}/cancel:
     post:
-      tags:
-      - booking
-      summary: Cancel a booking via its secret token
       operationId: cancelBooking
+      summary: Cancel a booking via its secret token
       parameters:
-      - name: token
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
-        "200":
-          description: "The booking, now cancelled; the slot is free again"
+        '200':
+          description: The booking, now cancelled; the slot is free again
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BookingResponse"
-        "404":
+                $ref: '#/components/schemas/BookingResponse'
+        '404':
           description: No booking for this token
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
-        "409":
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
           description: The booking has started and can no longer be cancelled
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/ProblemDetail'
+      tags:
+        - booking
   /api/host-settings:
     get:
-      tags:
-      - host-settings
-      summary: "Public host settings: timezone and booking horizon"
       operationId: getHostSettings
+      summary: 'Public host settings: timezone and booking horizon'
+      parameters: []
       responses:
-        "200":
+        '200':
           description: Host settings
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HostSettingsResponse"
+                $ref: '#/components/schemas/HostSettingsResponse'
+      tags:
+        - host-settings
   /api/host/booking-types:
     get:
-      tags:
-      - booking-types
-      summary: "All booking types (host view), including inactive and drafts"
       operationId: listAllBookingTypes
+      summary: All booking types (host view), including inactive and drafts
+      parameters: []
       responses:
-        "200":
-          description: "Every row, ordered for the host settings page"
+        '200':
+          description: Every row, ordered for the host settings page
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/BookingTypeResponse"
-    post:
+                  $ref: '#/components/schemas/BookingTypeResponse'
       tags:
-      - booking-types
-      summary: Create a booking type
+        - booking-types
+    post:
       operationId: createBookingType
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateBookingTypeRequest"
-        required: true
+      summary: Create a booking type
+      parameters: []
       responses:
-        "201":
-          description: "The new type, with database-assigned id and sort_order"
+        '201':
+          description: The new type, with database-assigned id and sort_order
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BookingTypeResponse"
-        "400":
-          description: "Missing or invalid fields (blank title, duration outside 5-240\
-            \ minutes)"
+                $ref: '#/components/schemas/BookingTypeResponse'
+        '400':
+          description: Missing or invalid fields (blank title, duration outside 5-240 minutes)
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
-  /api/host/booking-types/{id}:
-    put:
+                $ref: '#/components/schemas/ProblemDetail'
       tags:
-      - booking-types
-      summary: Update a booking type
-      operationId: updateBookingType
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-          format: int64
+        - booking-types
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateBookingTypeRequest"
-        required: true
+              $ref: '#/components/schemas/CreateBookingTypeRequest'
+  /api/host/booking-types/{id}:
+    put:
+      operationId: updateBookingType
+      summary: Update a booking type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
-        "200":
+        '200':
           description: The updated type
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BookingTypeResponse"
-        "400":
-          description: Missing or invalid fields
+                $ref: '#/components/schemas/BookingTypeResponse'
+        '400':
+          description: Missing or invalid fields (blank title, duration outside 5-240 minutes)
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
-        "404":
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
           description: No booking type with this id
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
-    delete:
+                $ref: '#/components/schemas/ProblemDetail'
       tags:
-      - booking-types
-      summary: Delete a booking type
-      operationId: deleteBookingType
-      parameters:
-      - name: id
-        in: path
+        - booking-types
+      requestBody:
         required: true
-        schema:
-          type: integer
-          format: int64
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingTypeRequest'
+    delete:
+      operationId: deleteBookingType
+      summary: Delete a booking type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
-        "204":
+        '204':
           description: Type deleted
-        "404":
+        '404':
           description: No booking type with this id
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/ProblemDetail'
+      tags:
+        - booking-types
   /api/host/bookings/{id}/cancel:
     post:
-      tags:
-      - host-bookings
-      summary: Cancel a booking by its numeric id (host view)
       operationId: cancelBookingById
+      summary: Cancel a booking by its numeric id (host view)
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: integer
-          format: int64
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
-        "200":
-          description: "The booking, now cancelled; the slot is free again"
+        '200':
+          description: The booking, now cancelled; the slot is free again
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HostBookingResponse"
-        "404":
-          description: No booking for this id
+                $ref: '#/components/schemas/HostBookingResponse'
+        '404':
+          description: No booking for this token
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
-        "409":
+                $ref: '#/components/schemas/ProblemDetail'
+        '409':
           description: The booking has started and can no longer be cancelled
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/ProblemDetail'
+      tags:
+        - host-bookings
   /api/ping:
     get:
-      tags:
-      - ping
-      summary: Connectivity check used to prove frontend/backend wiring
       operationId: ping
+      summary: Connectivity check used to prove frontend/backend wiring
+      parameters: []
       responses:
-        "200":
+        '200':
           description: ping 200 response
           content:
             text/plain:
               schema:
                 type: string
+      tags:
+        - ping
   /api/slots:
     get:
-      tags:
-      - slots
-      summary: "Available slot start times for a host-local day, filtered by booking\
-        \ type"
       operationId: getSlots
+      summary: Available slot start times for a host-local day, filtered by booking type
       parameters:
-      - name: date
-        in: query
-        required: true
-        explode: false
-        schema:
-          type: string
-      - name: bookingTypeId
-        in: query
-        required: true
-        explode: false
-        schema:
-          type: integer
-          format: int64
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+          explode: false
+        - name: bookingTypeId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+          explode: false
       responses:
-        "200":
+        '200':
           description: Slot start times as UTC instants
           content:
             application/json:
@@ -325,25 +323,26 @@ paths:
                 type: array
                 items:
                   type: string
-                  format: date-time
-        "400":
+        '400':
           description: Malformed date or unknown / inactive bookingTypeId
           content:
             application/problem+json:
               schema:
-                $ref: "#/components/schemas/ProblemDetail"
+                $ref: '#/components/schemas/ProblemDetail'
+      tags:
+        - slots
 components:
   schemas:
     BookingResponse:
-      required:
-      - bookingTypeId
-      - cancellationToken
-      - end
-      - guestEmail
-      - guestName
-      - start
-      - state
       type: object
+      required:
+        - guestName
+        - guestEmail
+        - start
+        - end
+        - state
+        - bookingTypeId
+        - cancellationToken
       properties:
         guestName:
           type: string
@@ -360,17 +359,16 @@ components:
           format: int64
         cancellationToken:
           type: string
-      description: "Payload returned to guests (UC-3, UC-4) --- exposes the secret\
-        \ cancellation token."
+      description: Payload returned to guests (UC-3, UC-4) — exposes the secret cancellation token.
     BookingTypeResponse:
-      required:
-      - active
-      - description
-      - durationMinutes
-      - id
-      - sortOrder
-      - title
       type: object
+      required:
+        - id
+        - title
+        - description
+        - durationMinutes
+        - sortOrder
+        - active
       properties:
         id:
           type: integer
@@ -387,14 +385,13 @@ components:
           format: int32
         active:
           type: boolean
-      description: Public payload for a booking type --- used by both the guest list
-        and host CRUD responses.
+      description: Public payload for a booking type — used by both the guest list and host CRUD responses.
     CreateBookingRequest:
-      required:
-      - guestEmail
-      - guestName
-      - start
       type: object
+      required:
+        - start
+        - guestName
+        - guestEmail
       properties:
         start:
           type: string
@@ -406,15 +403,13 @@ components:
           type: string
         guestEmail:
           type: string
-      description: "Body of POST /api/bookings. The guest picks a booking type and\
-        \ the server derives `durationMinutes` from it (GLOSSARY.md: \"Booking type\"\
-        ). Fields are nullable because input is untrusted."
+      description: 'Body of POST /api/bookings. The guest picks a booking type and the server derives `durationMinutes` from it (GLOSSARY.md: "Booking type"). Fields are nullable because input is untrusted.'
     CreateBookingTypeRequest:
-      required:
-      - description
-      - durationMinutes
-      - title
       type: object
+      required:
+        - title
+        - description
+        - durationMinutes
       properties:
         title:
           type: string
@@ -423,18 +418,17 @@ components:
         durationMinutes:
           type: integer
           format: int32
-      description: Body of POST /api/host/booking-types. Fields are nullable because
-        input is untrusted.
+      description: Body of POST /api/host/booking-types. Fields are nullable because input is untrusted.
     HostBookingResponse:
-      required:
-      - bookingTypeId
-      - end
-      - guestEmail
-      - guestName
-      - id
-      - start
-      - state
       type: object
+      required:
+        - id
+        - guestName
+        - guestEmail
+        - start
+        - end
+        - state
+        - bookingTypeId
       properties:
         id:
           type: integer
@@ -452,32 +446,26 @@ components:
         bookingTypeId:
           type: integer
           format: int64
-      description: "Bookings payload the host page needs. Mirrors BookingResponse\
-        \ minus the secret cancellation token: the token is meant to be per-guest\
-        \ (docs/domain.md), and listing every guest's token in one unauthenticated\
-        \ response would contradict that. The id is included so the host view can\
-        \ drive host-side cancellation by id (UC-6). `bookingTypeId` lets the host\
-        \ page render the booking type of each row (which one the guest chose)."
+      description: "Bookings payload the host page needs. Mirrors BookingResponse minus the secret cancellation token: the token is meant to be per-guest (docs/domain.md), and listing every guest's token in one unauthenticated response would contradict that. The id is included so the host view can drive host-side cancellation by id (UC-6). `bookingTypeId` lets the host page render the booking type of each row (which one the guest chose)."
     HostSettingsResponse:
-      required:
-      - bookingHorizonDays
-      - timezone
       type: object
+      required:
+        - timezone
+        - bookingHorizonDays
       properties:
         timezone:
           type: string
         bookingHorizonDays:
           type: integer
           format: int32
-      description: "Public host settings the guest UI needs: timezone and the number\
-        \ of calendar days a guest can book ahead. Allowed durations now live in booking_type."
+      description: 'Public host settings the guest UI needs: timezone and the number of calendar days a guest can book ahead. Allowed durations now live in booking_type.'
     ProblemDetail:
-      required:
-      - detail
-      - status
-      - title
-      - type
       type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
       properties:
         type:
           type: string
@@ -490,13 +478,13 @@ components:
           type: string
       description: RFC 7807 problem detail; served as application/problem+json.
     UpdateBookingTypeRequest:
-      required:
-      - active
-      - description
-      - durationMinutes
-      - sortOrder
-      - title
       type: object
+      required:
+        - title
+        - description
+        - durationMinutes
+        - sortOrder
+        - active
       properties:
         title:
           type: string
@@ -510,6 +498,8 @@ components:
           format: int32
         active:
           type: boolean
-      description: "Body of PUT /api/host/booking-types/{id}. `sortOrder` and `active`\
-        \ are host-only bookkeeping fields, so the host can move the type to the top\
-        \ of the picker or hide it without creating / deleting."
+      description: Body of PUT /api/host/booking-types/{id}. `sortOrder` and `active` are host-only bookkeeping fields, so the host can move the type to the top of the picker or hide it without creating / deleting.
+servers:
+  - url: /
+    description: Default server
+    variables: {}

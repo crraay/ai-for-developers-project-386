@@ -21,13 +21,18 @@ jobs:
           fetch-depth: 0 # commitlint below lints the pushed commit range
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
-      - name: Install JS dependencies (root = commitlint, frontend = app)
+      - name: Install JS dependencies (root = e2e + commitlint, frontend = app, typespec = contract)
         run: |
           npm ci
           npm --prefix frontend ci
+          npm --prefix typespec ci
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium
 
       # The one gate: everything a developer runs locally. Includes the
-      # generated-code freshness gate (regenerates spec + client, fails on diff).
+      # generated-code freshness gate (regenerates spec + client, fails on diff)
+      # and the end-to-end browser test against the real Compose stack.
       - name: mise run check
         run: mise run check
 

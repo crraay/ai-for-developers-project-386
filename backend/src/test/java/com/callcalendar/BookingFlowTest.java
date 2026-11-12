@@ -92,10 +92,10 @@ class BookingFlowTest {
   void bookingRoundTripFreesTheSlotAgain() {
     Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
 
-    BookingResponse created =
-        client
-            .toBlocking()
-            .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    var createResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, createResponse.code());
+    BookingResponse created = createResponse.getBody(BookingResponse.class).orElseThrow();
     assertEquals("active", created.state());
     assertEquals(QUICK_CHAT_ID, created.bookingTypeId());
     assertFalse(created.cancellationToken().isBlank());
@@ -118,19 +118,19 @@ class BookingFlowTest {
     assertEquals("cancelled", cancelled.state());
 
     // Cancellation frees the interval immediately (invariant #4)
-    BookingResponse rebooked =
-        client
-            .toBlocking()
-            .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    var rebookResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, rebookResponse.code());
+    BookingResponse rebooked = rebookResponse.getBody(BookingResponse.class).orElseThrow();
     assertEquals("active", rebooked.state());
   }
 
   @Test
   void doubleBookingIsRejectedWithProblemJson() {
     Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
-    client
-        .toBlocking()
-        .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    var firstResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, firstResponse.code());
 
     HttpClientResponseException ex =
         assertThrows(
@@ -147,9 +147,9 @@ class BookingFlowTest {
     // Book a 30-minute slot, then attempt a 60-minute booking starting 15
     // minutes in — partial overlap across different durations must 409.
     Instant slot = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0);
-    client
-        .toBlocking()
-        .retrieve(HttpRequest.POST("/api/bookings", booking(slot)), BookingResponse.class);
+    var firstResponse =
+        client.toBlocking().exchange(HttpRequest.POST("/api/bookings", booking(slot)));
+    assertEquals(201, firstResponse.code());
 
     HttpClientResponseException ex =
         assertThrows(
