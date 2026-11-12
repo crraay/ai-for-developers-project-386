@@ -15,7 +15,8 @@ slot=""
 target_date=""
 for offset in $(seq 2 9); do
   target_date="$(date -u -d "+${offset} days" +%Y-%m-%d)"
-  slots="$(curl -fsS "${base_url}/api/slots?date=${target_date}&durationMinutes=30")"
+  # bookingTypeId=1 is the seeded 30-minute "Quick chat" type (see README).
+  slots="$(curl -fsS "${base_url}/api/slots?date=${target_date}&bookingTypeId=1")"
   slot="$(printf '%s' "$slots" | grep -o '"[^"]*"' | head -n 1 | tr -d '"' || true)"
   if [ -n "${slot}" ]; then
     break
@@ -29,7 +30,7 @@ fi
 
 booking="$(curl -fsS -X POST "${base_url}/api/bookings" \
   -H 'Content-Type: application/json' \
-  -d "{\"start\":\"${slot}\",\"durationMinutes\":30,\"guestName\":\"Smoke Test\",\"guestEmail\":\"smoke@example.com\"}")"
+  -d "{\"start\":\"${slot}\",\"bookingTypeId\":1,\"guestName\":\"Smoke Test\",\"guestEmail\":\"smoke@example.com\"}")"
 token="$(printf '%s' "${booking}" | grep -o '"cancellationToken":"[^"]*"' | sed 's/^"cancellationToken":"//; s/"$//')"
 
 if [ -z "${token}" ]; then

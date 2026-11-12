@@ -10,7 +10,8 @@ $slot = $null
 $targetDate = $null
 foreach ($offset in 2..9) {
   $targetDate = (Get-Date).ToUniversalTime().AddDays($offset).ToString('yyyy-MM-dd')
-  $slots = Invoke-RestMethod -Uri "$baseUrl/api/slots?date=$targetDate&durationMinutes=30"
+  # bookingTypeId 1 is the seeded 30-minute "Quick chat" type (see README).
+  $slots = Invoke-RestMethod -Uri "$baseUrl/api/slots?date=$targetDate&bookingTypeId=1"
   if ($slots.Count -gt 0) {
     $slot = $slots[0]
     break
@@ -22,10 +23,10 @@ if (-not $slot) {
 }
 
 $body = @{
-  start            = $slot
-  durationMinutes  = 30
-  guestName        = 'Smoke Test'
-  guestEmail       = 'smoke@example.com'
+  start           = $slot
+  bookingTypeId   = 1
+  guestName       = 'Smoke Test'
+  guestEmail      = 'smoke@example.com'
 } | ConvertTo-Json
 $booking = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/bookings" -ContentType 'application/json' -Body $body
 
