@@ -42,7 +42,8 @@ public class BookingTypeController {
       responseCode = "200",
       description = "Active types, sorted for the picker (lowest sort_order first)",
       content =
-          @Content(array = @ArraySchema(schema = @Schema(implementation = BookingTypeResponse.class))))
+          @Content(
+              array = @ArraySchema(schema = @Schema(implementation = BookingTypeResponse.class))))
   public List<BookingTypeResponse> listActive() {
     return repository.findActive().stream().map(BookingTypeResponse::from).toList();
   }
@@ -55,7 +56,8 @@ public class BookingTypeController {
       responseCode = "200",
       description = "Every row, ordered for the host settings page",
       content =
-          @Content(array = @ArraySchema(schema = @Schema(implementation = BookingTypeResponse.class))))
+          @Content(
+              array = @ArraySchema(schema = @Schema(implementation = BookingTypeResponse.class))))
   public List<BookingTypeResponse> listAll() {
     return repository.findAll().stream().map(BookingTypeResponse::from).toList();
   }
@@ -114,8 +116,10 @@ public class BookingTypeController {
     return repository
         .update(id, title, body.description(), duration, sortOrder, active)
         .map(BookingTypeResponse::from)
-        .orElseThrow(() -> new com.callcalendar.service.BookingTypeNotFoundException(
-            "no booking type with id " + id));
+        .orElseThrow(
+            () ->
+                new com.callcalendar.service.BookingTypeNotFoundException(
+                    "no booking type with id " + id));
   }
 
   @Delete("/api/host/booking-types/{id}")

@@ -13,8 +13,8 @@ import java.util.Optional;
 import javax.sql.DataSource;
 
 /**
- * Reads and writes the {@code booking_type} table (Issue #28). The guest surface exposes active rows
- * sorted by {@code sort_order}; the host surface uses the same table unrestrictedly for CRUD.
+ * Reads and writes the {@code booking_type} table (Issue #28). The guest surface exposes active
+ * rows sorted by {@code sort_order}; the host surface uses the same table unrestrictedly for CRUD.
  */
 @Singleton
 public class BookingTypeRepository {
@@ -56,8 +56,7 @@ public class BookingTypeRepository {
   public Optional<BookingType> findById(long id) {
     try (Connection connection = dataSource.getConnection();
         PreparedStatement statement =
-            connection.prepareStatement(
-                "SELECT " + COLUMNS + " FROM booking_type WHERE id = ?")) {
+            connection.prepareStatement("SELECT " + COLUMNS + " FROM booking_type WHERE id = ?")) {
       statement.setLong(1, id);
       try (ResultSet rs = statement.executeQuery()) {
         return rs.next() ? Optional.of(read(rs)) : Optional.empty();
@@ -68,9 +67,9 @@ public class BookingTypeRepository {
   }
 
   /**
-   * Inserts a new type and returns it with the database-assigned id. The supplied
-   * {@code sortOrder} is renormalised to {@code (max + 10)} so a freshly created type lands at the
-   * end of the picker without the host having to pick an order.
+   * Inserts a new type and returns it with the database-assigned id. The supplied {@code sortOrder}
+   * is renormalised to {@code (max + 10)} so a freshly created type lands at the end of the picker
+   * without the host having to pick an order.
    */
   public BookingType insert(String title, String description, int durationMinutes) {
     int sortOrder = nextSortOrder();
@@ -100,7 +99,12 @@ public class BookingTypeRepository {
    * the host's feet.
    */
   public Optional<BookingType> update(
-      long id, String title, String description, int durationMinutes, int sortOrder, boolean active) {
+      long id,
+      String title,
+      String description,
+      int durationMinutes,
+      int sortOrder,
+      boolean active) {
     try (Connection connection = dataSource.getConnection();
         PreparedStatement statement =
             connection.prepareStatement(
@@ -115,7 +119,8 @@ public class BookingTypeRepository {
       if (statement.executeUpdate() == 0) {
         return Optional.empty();
       }
-      return Optional.of(new BookingType(id, title, description, durationMinutes, sortOrder, active));
+      return Optional.of(
+          new BookingType(id, title, description, durationMinutes, sortOrder, active));
     } catch (SQLException e) {
       throw new IllegalStateException("failed to update booking_type", e);
     }

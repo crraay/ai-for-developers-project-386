@@ -43,7 +43,12 @@ public class BookingTypeService {
   }
 
   public BookingType update(
-      long id, String title, String description, int durationMinutes, int sortOrder, boolean active) {
+      long id,
+      String title,
+      String description,
+      int durationMinutes,
+      int sortOrder,
+      boolean active) {
     return repository
         .update(id, title, description, durationMinutes, sortOrder, active)
         .orElseThrow(() -> new BookingTypeNotFoundException("no booking type with id " + id));

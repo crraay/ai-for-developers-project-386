@@ -10,7 +10,6 @@ import com.callcalendar.api.CreateBookingRequest;
 import com.callcalendar.api.HostBookingResponse;
 import com.callcalendar.api.HostSettingsResponse;
 import com.callcalendar.service.BookingRules;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.type.GenericArgument;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;

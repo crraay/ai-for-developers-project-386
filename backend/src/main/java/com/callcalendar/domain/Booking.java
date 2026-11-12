@@ -3,9 +3,9 @@ package com.callcalendar.domain;
 import java.time.Instant;
 
 /**
- * A guest's reservation of a specific interval. State per glossary: active | cancelled. The
- * {@code meetingTypeId} is the booking type the guest picked; the duration is derived server-side
- * from it (GLOSSARY.md: "Booking type").
+ * A guest's reservation of a specific interval. State per glossary: active | cancelled. The {@code
+ * meetingTypeId} is the booking type the guest picked; the duration is derived server-side from it
+ * (GLOSSARY.md: "Booking type").
  */
 public record Booking(
     long id,

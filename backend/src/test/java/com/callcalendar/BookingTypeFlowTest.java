@@ -8,14 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.callcalendar.api.BookingResponse;
 import com.callcalendar.api.BookingTypeResponse;
 import com.callcalendar.api.CreateBookingRequest;
-import com.callcalendar.service.BookingRules;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.type.GenericArgument;
-import io.micronaut.serde.annotation.Serdeable;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.serde.annotation.Serdeable;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import java.sql.Connection;
@@ -95,34 +94,37 @@ class BookingTypeFlowTest {
     // Inactive types do not appear in the public listing.
     assertEquals(2, listPublic().size());
 
-    client
-        .toBlocking()
-        .exchange(HttpRequest.DELETE("/api/host/booking-types/" + created.id()));
+    client.toBlocking().exchange(HttpRequest.DELETE("/api/host/booking-types/" + created.id()));
     assertEquals(2, listPublic().size());
-    assertNotFound(() -> client.toBlocking().exchange(HttpRequest.DELETE(
-        "/api/host/booking-types/" + created.id())));
+    assertNotFound(
+        () ->
+            client
+                .toBlocking()
+                .exchange(HttpRequest.DELETE("/api/host/booking-types/" + created.id())));
   }
 
   @Test
   void creatingATypeWithBlankTitleOrNonPositiveDurationIs400() {
-    assertStatus(400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody(
-        "  ", null, 30)));
-    assertStatus(400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody(
-        "Ok", null, 0)));
-    assertStatus(400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody(
-        "Ok", null, -5)));
-    assertStatus(400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody(
-        "Ok", null, null)));
+    assertStatus(
+        400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("  ", null, 30)));
+    assertStatus(
+        400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, 0)));
+    assertStatus(
+        400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, -5)));
+    assertStatus(
+        400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, null)));
   }
 
   @Test
   void updatingOrDeletingUnknownIdReturns404() {
     assertNotFound(
         () ->
-            client.toBlocking().exchange(
-                HttpRequest.PUT(
-                    "/api/host/booking-types/999999",
-                    new UpdateTypeBody("Late", null, 15, 1, true))));
+            client
+                .toBlocking()
+                .exchange(
+                    HttpRequest.PUT(
+                        "/api/host/booking-types/999999",
+                        new UpdateTypeBody("Late", null, 15, 1, true))));
     assertNotFound(
         () -> client.toBlocking().exchange(HttpRequest.DELETE("/api/host/booking-types/999999")));
   }
@@ -131,8 +133,7 @@ class BookingTypeFlowTest {
   void bookingDerivesDurationFromTheChosenActiveType() {
     // The two seeded types (Quick chat, Deep dive) get ids 1 and 2 by insert order
     // (BIGSERIAL). The booking duration is derived exclusively from the chosen type.
-    Instant slot =
-        firstSlotOnWeekday(1L /* Quick chat, 30 min */);
+    Instant slot = firstSlotOnWeekday(1L /* Quick chat, 30 min */);
     BookingResponse created = book(slot, 1L);
     assertEquals(1L, created.meetingTypeId());
     assertEquals(slot.plus(Duration.ofMinutes(30)), Instant.parse(created.end()));
@@ -143,12 +144,14 @@ class BookingTypeFlowTest {
     Instant slot = firstSlotOnWeekday(1L);
 
     HttpClientResponseException unknown =
-        assertThrows(
-            HttpClientResponseException.class,
-            () -> book(slot, 999_999L));
+        assertThrows(HttpClientResponseException.class, () -> book(slot, 999_999L));
     assertEquals(404, unknown.getStatus().getCode());
-    assertTrue(unknown.getResponse().getBody(String.class).orElseThrow()
-        .contains("Booking type not found"));
+    assertTrue(
+        unknown
+            .getResponse()
+            .getBody(String.class)
+            .orElseThrow()
+            .contains("Booking type not found"));
 
     // Disable the seeded 30-minute type and try to book against its id: a hand-crafted
     // request must not silently book against a hidden offering.
@@ -160,12 +163,9 @@ class BookingTypeFlowTest {
                 new UpdateTypeBody("Quick chat", null, 30, 10, false)));
 
     HttpClientResponseException inactive =
-        assertThrows(
-            HttpClientResponseException.class,
-            () -> book(slot, 1L));
+        assertThrows(HttpClientResponseException.class, () -> book(slot, 1L));
     assertEquals(400, inactive.getStatus().getCode());
-    assertTrue(inactive.getResponse().getBody(String.class).orElseThrow()
-        .contains("not active"));
+    assertTrue(inactive.getResponse().getBody(String.class).orElseThrow().contains("not active"));
   }
 
   @Test
@@ -202,8 +202,8 @@ class BookingTypeFlowTest {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.POST("/api/host/booking-types", new CreateTypeBody(
-                title, description, duration)),
+            HttpRequest.POST(
+                "/api/host/booking-types", new CreateTypeBody(title, description, duration)),
             BookingTypeResponse.class);
   }
 
@@ -228,8 +228,7 @@ class BookingTypeFlowTest {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.GET(
-                "/api/slots?date=" + date + "&meetingTypeId=" + meetingTypeId),
+            HttpRequest.GET("/api/slots?date=" + date + "&meetingTypeId=" + meetingTypeId),
             new GenericArgument<List<Instant>>() {});
   }
 

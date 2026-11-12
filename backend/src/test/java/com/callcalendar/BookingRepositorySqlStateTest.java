@@ -64,13 +64,7 @@ class BookingRepositorySqlStateTest {
             expected,
             () ->
                 new BookingRepository(stub(sqlState))
-                    .insert(
-                        "Ada Lovelace",
-                        "ada@example.com",
-                        START,
-                        END,
-                        1L /* type */,
-                        TOKEN));
+                    .insert("Ada Lovelace", "ada@example.com", START, END, 1L /* type */, TOKEN));
     SQLException cause = (SQLException) thrown.getCause();
     assertNotNull(cause);
     return cause;

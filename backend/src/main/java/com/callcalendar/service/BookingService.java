@@ -58,14 +58,7 @@ public class BookingService {
     String token = generateToken();
     bookingRepository.insert(guestName.trim(), guestEmail.trim(), start, end, type.id(), token);
     return new Booking(
-        0,
-        guestName.trim(),
-        guestEmail.trim(),
-        start,
-        end,
-        Booking.STATE_ACTIVE,
-        type.id(),
-        token);
+        0, guestName.trim(), guestEmail.trim(), start, end, Booking.STATE_ACTIVE, type.id(), token);
   }
 
   public Booking getByToken(String token) {

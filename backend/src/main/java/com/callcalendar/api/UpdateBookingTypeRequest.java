@@ -9,8 +9,4 @@ import io.micronaut.serde.annotation.Serdeable;
  */
 @Serdeable
 public record UpdateBookingTypeRequest(
-    String title,
-    String description,
-    Integer durationMinutes,
-    Integer sortOrder,
-    Boolean active) {}
+    String title, String description, Integer durationMinutes, Integer sortOrder, Boolean active) {}
