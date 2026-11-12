@@ -63,7 +63,9 @@ class BookingOverlapTest {
   /**
    * How often the repository-level race is replayed: the first rounds mostly resolve as plain 23P01
    * (cold pool, cold JIT), the warm ones are where the 40P01 interleaving shows up — each round
-   * costs a deadlock timeout only when it does.
+   * costs a deadlock timeout only when it does. The round count is statistical, not exhaustive: the
+   * deterministic guard for the {@code 40P01} mapping lives in {@code
+   * BookingRepositorySqlStateTest}.
    */
   private static final int INSERT_RACE_ROUNDS = 12;
 
@@ -104,18 +106,29 @@ class BookingOverlapTest {
   }
 
   /**
-   * The repository seam, where ADR-0006's SQLState translation lives: inserts started at the same
-   * instant race the constraint itself, with no service pre-check in between. Postgres reports the
-   * lost side either as the exclusion violation (23P01) or — when two inserts reach the conflict
-   * check before either commits — as a deadlock in which one of them is the victim (40P01). Every
-   * loser must come back as the domain refusal; anything else is a 500 handed to a guest.
+   * Repository-level integration evidence for the {@code 40P01} half of ADR-0006's SQLState
+   * translation: when two inserts reach the exclusion-check before either commits, Postgres aborts
+   * one of them as the deadlock victim instead of an exclusion violation. This test does not
+   * <em>guard</em> the translation — the deterministic guard is {@code
+   * BookingRepositorySqlStateTest.exclusionCheckDeadlockIsMappedToSlotUnavailable}. It exists to
+   * prove the premise: Postgres really does emit {@code 40P01} in this scenario, so the translation
+   * must handle it at all.
+   *
+   * <p>The assertion is timing-independent: a pre-fix run surfaces the bug as {@link
+   * IllegalStateException}, which {@link #racingInsert} reports as {@code
+   * "unexpected:IllegalStateException"} and which breaks the {@code [booked, refused, refused,
+   * refused]} expectation. With the fix in, every loser — whether {@code 23P01} or {@code 40P01} —
+   * comes back as {@code "refused"}. False-pass risk on broken code is low but non-zero (the bug
+   * only shows up when the timing triggers a {@code 40P01} round, so a future regression could
+   * drift past this test); the deterministic guard above removes that risk.
    */
   @Test
   void simultaneousRepositoryInsertsResolveToOneBookingAndOneRefusal() throws Exception {
     // The conflict check runs in the microseconds after a row is indexed, so unaided the racing
     // inserts hardly ever reach it together (0 of 10 rounds while writing this). The trigger pauses
     // every insert just before it lands, and four racers put six mutually overlapping pairs on the
-    // line per round — with that the race reproduces reliably.
+    // line per round — together this widens the window enough for a 40P01 round to show up most
+    // runs, so a future regression has a high chance of being caught here too.
     executeDdl(
         "CREATE FUNCTION booking_pause_insert() RETURNS trigger AS"
             + " $$ BEGIN PERFORM pg_sleep(0.1); RETURN NEW; END; $$ LANGUAGE plpgsql");

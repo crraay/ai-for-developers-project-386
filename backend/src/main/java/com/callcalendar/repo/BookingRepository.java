@@ -56,7 +56,7 @@ public class BookingRepository {
     } catch (SQLException e) {
       String sqlState = e.getSQLState();
       if (EXCLUSION_VIOLATION.equals(sqlState) || EXCLUSION_CHECK_DEADLOCK.equals(sqlState)) {
-        throw new SlotUnavailableException("slot no longer available");
+        throw new SlotUnavailableException("slot no longer available", e);
       }
       throw new IllegalStateException("failed to insert booking", e);
     }
