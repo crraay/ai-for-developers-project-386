@@ -146,8 +146,15 @@ model BookingTypeNotFound {
   @body body: ProblemDetail;
 }
 
+@doc("No booking for this id")
+model HostBookingNotFound {
+  @statusCode statusCode: 404;
+  @header contentType: "application/problem+json";
+  @body body: ProblemDetail;
+}
+
 @doc("Type deleted")
-model TypeDeleted {
+model DeleteBookingTypeResponse {
   @statusCode statusCode: 204;
 }
 
@@ -324,7 +331,7 @@ interface BookingTypes {
   @route("/host/booking-types/{id}")
   deleteBookingType(
     @path id: int64,
-  ): TypeDeleted | BookingTypeNotFound;
+  ): DeleteBookingTypeResponse | BookingTypeNotFound;
 }
 
 @tag("host-bookings")
@@ -336,7 +343,7 @@ interface HostBookings {
   @route("/{id}/cancel")
   cancelBookingById(
     @path id: int64,
-  ): CancelBookingByIdResponse | BookingNotFound | CancelConflict;
+  ): CancelBookingByIdResponse | HostBookingNotFound | CancelConflict;
 }
 
 @tag("host-settings")

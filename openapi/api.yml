@@ -269,7 +269,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HostBookingResponse'
         '404':
-          description: No booking for this token
+          description: No booking for this id
           content:
             application/problem+json:
               schema:

@@ -6,6 +6,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: 'list',
+  globalSetup: require.resolve('./global-setup.mjs'),
+  globalTeardown: require.resolve('./global-teardown.mjs'),
   use: {
     baseURL: 'http://localhost:4200',
     trace: 'on-first-retry',
@@ -16,10 +18,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'node e2e/setup-stack.mjs',
-    url: 'http://localhost:4200',
-    timeout: 180_000,
-    reuseExistingServer: !process.env.CI,
-  },
 });

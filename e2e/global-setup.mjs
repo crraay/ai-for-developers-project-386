@@ -35,26 +35,14 @@ function run(command, args) {
   });
 }
 
-async function shutdown() {
+export default async function globalSetup() {
+  await run('docker', ['compose', 'up', '--build', '-d']);
+
   try {
+    await waitFor(BACKEND_URL, BACKEND_TIMEOUT_MS);
+    await waitFor(FRONTEND_URL, FRONTEND_TIMEOUT_MS);
+  } catch (error) {
     await run('docker', ['compose', 'down', '-v']);
-  } finally {
-    process.exit(0);
+    throw error;
   }
 }
-
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
-
-await run('docker', ['compose', 'up', '--build', '-d']);
-
-try {
-  await waitFor(BACKEND_URL, BACKEND_TIMEOUT_MS);
-  await waitFor(FRONTEND_URL, FRONTEND_TIMEOUT_MS);
-} catch (error) {
-  await shutdown();
-  throw error;
-}
-
-// Keep the process alive so Playwright can tear the stack down via SIGTERM.
-setInterval(() => {}, 60_000);
