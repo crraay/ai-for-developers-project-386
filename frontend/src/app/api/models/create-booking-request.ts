@@ -5,8 +5,8 @@
  * Body of POST /api/bookings. The guest picks a booking type and the server derives `durationMinutes` from it (GLOSSARY.md: "Booking type"). Fields are nullable because input is untrusted.
  */
 export interface CreateBookingRequest {
+  bookingTypeId?: number | null;
   guestEmail: string;
   guestName: string;
-  meetingTypeId?: number | null;
   start: string;
 }

@@ -5,11 +5,11 @@
  * Payload returned to guests (UC-3, UC-4) --- exposes the secret cancellation token.
  */
 export interface BookingResponse {
+  bookingTypeId: number;
   cancellationToken: string;
   end: string;
   guestEmail: string;
   guestName: string;
-  meetingTypeId: number;
   start: string;
   state: string;
 }

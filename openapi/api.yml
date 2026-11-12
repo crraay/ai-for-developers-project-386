@@ -69,7 +69,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/BookingResponse"
         "400":
-          description: "Malformed body, missing meetingTypeId, or inactive booking\
+          description: "Malformed body, missing bookingTypeId, or inactive booking\
             \ type"
           content:
             application/problem+json:
@@ -185,7 +185,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/BookingTypeResponse"
         "400":
-          description: "Missing or invalid fields (blank title, non-positive duration)"
+          description: "Missing or invalid fields (blank title, duration outside 5-240\
+            \ minutes)"
           content:
             application/problem+json:
               schema:
@@ -308,7 +309,7 @@ paths:
         explode: false
         schema:
           type: string
-      - name: meetingTypeId
+      - name: bookingTypeId
         in: query
         required: true
         explode: false
@@ -326,7 +327,7 @@ paths:
                   type: string
                   format: date-time
         "400":
-          description: Malformed date or unknown / inactive meetingTypeId
+          description: Malformed date or unknown / inactive bookingTypeId
           content:
             application/problem+json:
               schema:
@@ -335,11 +336,11 @@ components:
   schemas:
     BookingResponse:
       required:
+      - bookingTypeId
       - cancellationToken
       - end
       - guestEmail
       - guestName
-      - meetingTypeId
       - start
       - state
       type: object
@@ -354,7 +355,7 @@ components:
           type: string
         state:
           type: string
-        meetingTypeId:
+        bookingTypeId:
           type: integer
           format: int64
         cancellationToken:
@@ -397,7 +398,7 @@ components:
       properties:
         start:
           type: string
-        meetingTypeId:
+        bookingTypeId:
           type: integer
           format: int64
           nullable: true
@@ -426,11 +427,11 @@ components:
         input is untrusted.
     HostBookingResponse:
       required:
+      - bookingTypeId
       - end
       - guestEmail
       - guestName
       - id
-      - meetingTypeId
       - start
       - state
       type: object
@@ -448,14 +449,14 @@ components:
           type: string
         state:
           type: string
-        meetingTypeId:
+        bookingTypeId:
           type: integer
           format: int64
       description: "Bookings payload the host page needs. Mirrors BookingResponse\
         \ minus the secret cancellation token: the token is meant to be per-guest\
         \ (docs/domain.md), and listing every guest's token in one unauthenticated\
         \ response would contradict that. The id is included so the host view can\
-        \ drive host-side cancellation by id (UC-6). `meetingTypeId` lets the host\
+        \ drive host-side cancellation by id (UC-6). `bookingTypeId` lets the host\
         \ page render the booking type of each row (which one the guest chose)."
     HostSettingsResponse:
       required:
