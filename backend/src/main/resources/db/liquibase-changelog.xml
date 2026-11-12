@@ -7,4 +7,5 @@
   <include file="changelog/01-schema.xml" relativeToChangelogFile="true"/>
   <include file="changelog/02-schedule.xml" relativeToChangelogFile="true"/>
   <include file="changelog/03-allowed-durations.xml" relativeToChangelogFile="true"/>
+  <include file="changelog/04-overlap-constraint.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -21,6 +21,16 @@ public class BookingRepository {
   /** SQLState reported by the booking_no_active_overlap exclusion constraint (ADR-0006). */
   private static final String EXCLUSION_VIOLATION = "23P01";
 
+  /**
+   * SQLState Postgres reports when two racing inserts deadlock against each other inside that same
+   * constraint's conflict check instead of one of them getting 23P01 — it aborts one insert as the
+   * victim, reporting "deadlock detected … Where: while checking exclusion constraint … in relation
+   * booking". The victim is the loser of the very same race, so it is refused identically. This
+   * INSERT is a single autocommit statement that locks nothing but its own new row and that
+   * constraint's index, so in practice no other deadlock can reach this catch.
+   */
+  private static final String EXCLUSION_CHECK_DEADLOCK = "40P01";
+
   private static final String BOOKING_COLUMNS =
       "id, guest_name, guest_email, start_at, end_at, state, cancellation_token";
 
@@ -44,7 +54,8 @@ public class BookingRepository {
       statement.setString(5, cancellationToken);
       statement.executeUpdate();
     } catch (SQLException e) {
-      if (EXCLUSION_VIOLATION.equals(e.getSQLState())) {
+      String sqlState = e.getSQLState();
+      if (EXCLUSION_VIOLATION.equals(sqlState) || EXCLUSION_CHECK_DEADLOCK.equals(sqlState)) {
         throw new SlotUnavailableException("slot no longer available");
       }
       throw new IllegalStateException("failed to insert booking", e);

@@ -25,3 +25,20 @@ trustworthy as the least careful future code path.
   translates it into the domain error. The pre-insert availability check stays
   for the friendlier rejection paths (past, horizon, misalignment) but is not
   relied on for correctness.
+
+## Amendments
+
+- **2026-11-12 (issue #31)** — two facts the original wording hid, both now
+  enforced by tests in `BookingOverlapTest`:
+  - The exclusion operator must be `&&`, not `=`: an equality-based exclusion
+    only rejects *identical* intervals, so partially overlapping inserts both
+    landed while the service pre-check (which cannot see a racing transaction)
+    passed them. Changeset `08-booking-overlap-operator` re-adds the constraint
+    with `&&` over the same `'[)'` ranges, which keeps back-to-back bookings
+    legal.
+  - A lost race can surface as **SQLState `40P01`** ("deadlock detected … while
+    checking exclusion constraint on … relation booking") rather than `23P01`:
+    when both inserts reach the conflict check before either commits, Postgres
+    aborts one of them as the victim. The insert treats `40P01` as the same lost
+    race and refuses it with the same domain error, so a loser always gets 409
+    instead of a 500.
