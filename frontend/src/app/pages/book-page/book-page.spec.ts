@@ -24,10 +24,27 @@ describe('BookPage', () => {
 
   afterEach(() => httpTesting.verify());
 
-  const settings = { timezone: 'Europe/Berlin', allowedDurations: [30] };
+  const types = [
+    {
+      id: 1,
+      title: 'Quick chat',
+      description: '',
+      durationMinutes: 30,
+      sortOrder: 10,
+      active: true,
+    },
+    {
+      id: 2,
+      title: 'Deep dive',
+      description: '',
+      durationMinutes: 60,
+      sortOrder: 20,
+      active: true,
+    },
+  ];
 
   function loadSlots(slots: string[]): void {
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush(settings);
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(types);
     const request = httpTesting.expectOne((req) => req.urlWithParams.includes('/api/slots'));
     request.flush(slots);
   }
@@ -71,7 +88,7 @@ describe('BookPage', () => {
   it('shows an error when slots cannot be loaded', () => {
     const fixture = TestBed.createComponent(BookPage);
     fixture.detectChanges();
-    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush(settings);
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(types);
     httpTesting
       .expectOne((req) => req.urlWithParams.includes('/api/slots'))
       .flush('boom', { status: 500, statusText: 'Server Error' });

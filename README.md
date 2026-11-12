@@ -54,6 +54,36 @@ cd backend && mise exec -- ./gradlew run
 cd frontend && mise exec -- npm start
 ```
 
+### Booking types
+
+What a guest books is one of the **booking types** the host has set up — each
+type carries its own title, description, and duration, and the guest picks one
+instead of choosing a raw duration. The host manages them at
+**http://localhost:4200/host/booking-types**; the two seeded types on a fresh
+database are:
+
+| Order | Title       | Duration |
+| ----- | ----------- | -------- |
+| 10    | Quick chat  | 30 min   |
+| 20    | Deep dive   | 60 min   |
+
+A guest flow that uses both:
+
+1. Open **http://localhost:4200/book**, pick a day, and choose **Deep dive**
+   from the *Meeting type* picker.
+2. Click any of the time slots — each one carries the chosen `meetingTypeId`,
+   so picking the same slot with **Quick chat** would show 30-minute windows
+   instead.
+3. Fill in name + email on the confirm form, which now also shows the type's
+   title and description, and submit — the booking is created with that
+   type's duration derived server-side.
+4. On the host view (**/host**), every row shows the type the guest chose
+   (e.g. *"Mon, 03 Nov, 14:00–15:00 · Deep dive"*).
+
+Hiding a type (uncheck *Visible* in the editor) takes it off the guest picker
+without deleting past bookings; deleting it is irreversible but the type label
+stays attached to existing rows.
+
 
 
 ## Deployment

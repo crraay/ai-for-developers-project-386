@@ -2,11 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../../api/api';
-import { getHostSettings } from '../../api/fn/host-settings/get-host-settings';
+import { listActiveBookingTypes } from '../../api/fn/booking-types/list-active-booking-types';
 import { getSlots } from '../../api/fn/slots/get-slots';
+import type { BookingTypeResponse } from '../../api/models/booking-type-response';
 import { addDays, formatLocalTime, localTimeZone, toDateString } from '../../time';
 
-/** UC-2: pick a day and duration, browse available start times. */
+/** UC-2: pick a day and booking type, browse available start times. */
 @Component({
   selector: 'app-book-page',
   imports: [FormsModule, RouterLink],
@@ -18,22 +19,22 @@ export class BookPage {
 
   protected readonly timeZone = localTimeZone();
   protected readonly minDate = toDateString(new Date());
-  protected readonly maxDate = toDateString(addDays(new Date(), 90));
+  protected readonly maxDate = toDateString(addDays(new Date(), 14));
   protected readonly date = signal(this.minDate);
-  protected readonly durations = signal<number[]>([]);
-  protected readonly duration = signal<number | null>(null);
+  protected readonly types = signal<BookingTypeResponse[]>([]);
+  protected readonly typeId = signal<number | null>(null);
   protected readonly slots = signal<string[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly formatTime = formatLocalTime;
 
   constructor() {
-    this.api.invoke(getHostSettings).subscribe({
-      next: (settings) => {
-        this.durations.set(settings.allowedDurations);
-        this.duration.set(settings.allowedDurations[0] ?? null);
+    this.api.invoke(listActiveBookingTypes).subscribe({
+      next: (types) => {
+        this.types.set(types);
+        this.typeId.set(types[0]?.id ?? null);
         this.loadSlots();
       },
-      error: () => this.error.set('Could not load host settings.'),
+      error: () => this.error.set('Could not load booking types.'),
     });
   }
 
@@ -43,19 +44,24 @@ export class BookPage {
     this.loadSlots();
   }
 
-  protected onDurationChange(event: Event): void {
+  protected onTypeChange(event: Event): void {
     const value = Number((event.target as HTMLSelectElement).value);
-    this.duration.set(value);
+    this.typeId.set(value);
     this.loadSlots();
   }
 
+  protected durationFor(id: number | null): number | null {
+    if (id === null) return null;
+    return this.types().find((t) => t.id === id)?.durationMinutes ?? null;
+  }
+
   private loadSlots(): void {
-    const duration = this.duration();
-    if (duration === null) {
+    const id = this.typeId();
+    if (id === null) {
       return;
     }
     this.error.set(null);
-    this.api.invoke(getSlots, { date: this.date(), durationMinutes: duration }).subscribe({
+    this.api.invoke(getSlots, { date: this.date(), meetingTypeId: id }).subscribe({
       next: (starts) => this.slots.set(starts),
       error: () => {
         this.slots.set([]);

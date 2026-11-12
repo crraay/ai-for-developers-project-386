@@ -1,9 +1,12 @@
 import { Component, ElementRef, ViewChild, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Api } from '../../api/api';
 import { errorMessage } from '../../api-errors';
 import { listBookings } from '../../api/fn/booking/list-bookings';
+import { listAllBookingTypes } from '../../api/fn/booking-types/list-all-booking-types';
 import { cancelBookingById } from '../../api/fn/host-bookings/cancel-booking-by-id';
 import { getHostSettings } from '../../api/fn/host-settings/get-host-settings';
+import type { BookingTypeResponse } from '../../api/models/booking-type-response';
 import type { HostBookingResponse } from '../../api/models/host-booking-response';
 import { durationLabel, formatInTimeZone } from '../../time';
 
@@ -12,7 +15,7 @@ type Filter = 'all' | 'active' | 'cancelled';
 /** UC-5 + UC-6: the host's view of upcoming bookings, with cancellation by id. */
 @Component({
   selector: 'app-host-page',
-  imports: [],
+  imports: [RouterLink],
   styleUrl: './host-page.scss',
   templateUrl: './host-page.html',
 })
@@ -28,6 +31,8 @@ export class HostPage {
   private readonly confirmingId = signal<number | null>(null);
   private readonly cancellingId = signal<number | null>(null);
   private readonly dialogError = signal<string | null>(null);
+  /** id → type, used to render each row's title. */
+  private readonly types = signal<Map<number, BookingTypeResponse>>(new Map());
 
   @ViewChild('confirmDialog') private confirmDialog?: ElementRef<HTMLDialogElement>;
 
@@ -79,6 +84,12 @@ export class HostPage {
       next: ({ timezone }) => this.timeZone.set(timezone),
       error: () => this.timeZone.set('UTC'),
     });
+    this.api.invoke(listAllBookingTypes).subscribe({
+      // Best-effort: types are a UI nicety, so a failure here must not stop
+      // the bookings list from rendering.
+      next: (list) => this.types.set(new Map(list.map((t) => [t.id, t]))),
+      error: () => this.types.set(new Map()),
+    });
     this.api.invoke(listBookings, {}).subscribe({
       next: (list) => this.bookings.set(list),
       error: (err: unknown) => this.loadError.set(errorMessage(err, 'Could not load bookings.')),
@@ -113,6 +124,10 @@ export class HostPage {
 
   protected formatDuration(start: string, end: string): string {
     return durationLabel(start, end);
+  }
+
+  protected typeTitle(meetingTypeId: number): string {
+    return this.types().get(meetingTypeId)?.title ?? '—';
   }
 
   protected openCancelDialog(b: HostBookingResponse): void {

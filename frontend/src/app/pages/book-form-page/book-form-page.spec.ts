@@ -9,11 +9,30 @@ import { BookFormPage } from './book-form-page';
 const START = '2026-11-03T08:00:00Z';
 const TOKEN = 'test-cancellation-token-000000';
 
+const ACTIVE_TYPES = [
+  {
+    id: 1,
+    title: 'Quick chat',
+    description: 'A short sync-up.',
+    durationMinutes: 30,
+    sortOrder: 10,
+    active: true,
+  },
+  {
+    id: 2,
+    title: 'Deep dive',
+    description: 'Long-form working session.',
+    durationMinutes: 60,
+    sortOrder: 20,
+    active: true,
+  },
+];
+
 function activatedRouteStub(): ActivatedRoute {
   return {
     snapshot: {
       paramMap: convertToParamMap({ start: START }),
-      queryParamMap: convertToParamMap({ durationMinutes: '30' }),
+      queryParamMap: convertToParamMap({ meetingTypeId: '1' }),
     },
   } as unknown as ActivatedRoute;
 }
@@ -64,17 +83,23 @@ describe('BookFormPage', () => {
     return compiled;
   }
 
-  it('shows the chosen slot before booking', () => {
+  it('shows the chosen booking type before booking', () => {
     const fixture = TestBed.createComponent(BookFormPage);
     fixture.detectChanges();
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(ACTIVE_TYPES);
+    fixture.detectChanges();
+
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('30 minutes');
+    expect(compiled.textContent).toContain('Quick chat');
     expect(compiled.textContent).toContain('Confirm booking');
   });
 
   it('books the slot and navigates to the secret link', async () => {
     const fixture = TestBed.createComponent(BookFormPage);
     fixture.detectChanges();
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(ACTIVE_TYPES);
+    fixture.detectChanges();
+
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
 
     await fillAndSubmit(fixture);
@@ -82,7 +107,7 @@ describe('BookFormPage', () => {
     const request = httpTesting.expectOne('http://localhost:8080/api/bookings');
     expect(request.request.body).toEqual({
       start: START,
-      durationMinutes: 30,
+      meetingTypeId: 1,
       guestName: 'Ada Lovelace',
       guestEmail: 'ada@example.com',
     });
@@ -100,6 +125,8 @@ describe('BookFormPage', () => {
 
   it('shows the problem detail when the slot is gone', async () => {
     const fixture = TestBed.createComponent(BookFormPage);
+    fixture.detectChanges();
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(ACTIVE_TYPES);
     fixture.detectChanges();
 
     await fillAndSubmit(fixture);

@@ -1,6 +1,15 @@
 <section class="page">
   <h2>Confirm your booking</h2>
-  <p class="summary">{{ formatDateTime(start) }} · {{ durationMinutes }} minutes</p>
+  @if (type(); as chosen) {
+    <p class="summary">
+      {{ formatDateTime(start) }} · {{ chosen.title }} ({{ chosen.durationMinutes }} min)
+    </p>
+    @if (chosen.description) {
+      <p class="hint">{{ chosen.description }}</p>
+    }
+  } @else {
+    <p class="summary">{{ formatDateTime(start) }}</p>
+  }
 
   @if (error()) {
     <p class="error" role="alert">{{ error() }}</p>

@@ -14,10 +14,10 @@
       />
     </label>
     <label class="field">
-      <span class="field-label">Duration</span>
-      <select [value]="duration()" (change)="onDurationChange($event)">
-        @for (option of durations(); track option) {
-          <option [value]="option">{{ option }} minutes</option>
+      <span class="field-label">Meeting type</span>
+      <select [value]="typeId()" (change)="onTypeChange($event)">
+        @for (option of types(); track option.id) {
+          <option [value]="option.id">{{ option.title }} ({{ option.durationMinutes }} min)</option>
         }
       </select>
     </label>
@@ -34,7 +34,7 @@
           <a
             class="slot-link"
             [routerLink]="['/book', slot]"
-            [queryParams]="{ durationMinutes: duration() }"
+            [queryParams]="{ meetingTypeId: typeId() }"
           >
             {{ formatTime(slot) }}
           </a>

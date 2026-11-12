@@ -3,7 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Api } from '../../api/api';
 import { errorMessage } from '../../api-errors';
+import { listActiveBookingTypes } from '../../api/fn/booking-types/list-active-booking-types';
 import { createBooking } from '../../api/fn/booking/create-booking';
+import type { BookingTypeResponse } from '../../api/models/booking-type-response';
 import { formatLocalDateTime } from '../../time';
 
 /** UC-3: name + email form for a chosen slot; on success opens the secret link. */
@@ -19,13 +21,26 @@ export class BookFormPage {
   private readonly router = inject(Router);
 
   protected readonly start: string = this.route.snapshot.paramMap.get('start') ?? '';
-  protected readonly durationMinutes: number = this.parseDuration();
+  protected readonly meetingTypeId: number = this.parseMeetingTypeId();
+  protected readonly type = signal<BookingTypeResponse | null>(null);
   protected readonly formatDateTime = formatLocalDateTime;
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
 
   guestName = '';
   guestEmail = '';
+
+  constructor() {
+    this.api.invoke(listActiveBookingTypes).subscribe({
+      next: (types) => {
+        const match = types.find((t) => t.id === this.meetingTypeId) ?? null;
+        this.type.set(match);
+      },
+      // The summary falls back to a plain time + minutes window if the lookup
+      // fails; submitting still succeeds because the server validates the id.
+      error: () => this.type.set(null),
+    });
+  }
 
   protected submit(): void {
     if (this.submitting() || this.guestName.trim() === '' || this.guestEmail.trim() === '') {
@@ -37,7 +52,7 @@ export class BookFormPage {
       .invoke(createBooking, {
         body: {
           start: this.start,
-          durationMinutes: this.durationMinutes,
+          meetingTypeId: this.meetingTypeId,
           guestName: this.guestName,
           guestEmail: this.guestEmail,
         },
@@ -51,8 +66,8 @@ export class BookFormPage {
       });
   }
 
-  private parseDuration(): number {
-    const raw = Number(this.route.snapshot.queryParamMap.get('durationMinutes'));
-    return Number.isFinite(raw) && raw > 0 ? raw : 30;
+  private parseMeetingTypeId(): number {
+    const raw = Number(this.route.snapshot.queryParamMap.get('meetingTypeId'));
+    return Number.isFinite(raw) && raw > 0 ? raw : 1;
   }
 }
