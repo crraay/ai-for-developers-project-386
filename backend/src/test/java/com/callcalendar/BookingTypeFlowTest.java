@@ -104,13 +104,18 @@ class BookingTypeFlowTest {
   }
 
   @Test
-  void creatingATypeWithBlankTitleOrNonPositiveDurationIs400() {
+  void creatingATypeWithBlankTitleOrOutOfRangeDurationIs400() {
     assertStatus(
         400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("  ", null, 30)));
+    // The 5-240 minute bounds match the booking-types page; anything outside is a 400.
     assertStatus(
         400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, 0)));
     assertStatus(
         400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, -5)));
+    assertStatus(
+        400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, 4)));
+    assertStatus(
+        400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, 241)));
     assertStatus(
         400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("Ok", null, null)));
   }
@@ -135,7 +140,7 @@ class BookingTypeFlowTest {
     // (BIGSERIAL). The booking duration is derived exclusively from the chosen type.
     Instant slot = firstSlotOnWeekday(1L /* Quick chat, 30 min */);
     BookingResponse created = book(slot, 1L);
-    assertEquals(1L, created.meetingTypeId());
+    assertEquals(1L, created.bookingTypeId());
     assertEquals(slot.plus(Duration.ofMinutes(30)), Instant.parse(created.end()));
   }
 
@@ -207,28 +212,28 @@ class BookingTypeFlowTest {
             BookingTypeResponse.class);
   }
 
-  private BookingResponse book(Instant start, long meetingTypeId) {
+  private BookingResponse book(Instant start, long bookingTypeId) {
     return client
         .toBlocking()
         .retrieve(
             HttpRequest.POST(
                 "/api/bookings",
                 new CreateBookingRequest(
-                    start.toString(), meetingTypeId, "Ada Lovelace", "ada@example.com")),
+                    start.toString(), bookingTypeId, "Ada Lovelace", "ada@example.com")),
             BookingResponse.class);
   }
 
-  private Instant firstSlotOnWeekday(long meetingTypeId) {
-    List<Instant> starts = slots(nextWeekday(), meetingTypeId);
+  private Instant firstSlotOnWeekday(long bookingTypeId) {
+    List<Instant> starts = slots(nextWeekday(), bookingTypeId);
     assertFalse(starts.isEmpty());
     return starts.get(0);
   }
 
-  private List<Instant> slots(LocalDate date, long meetingTypeId) {
+  private List<Instant> slots(LocalDate date, long bookingTypeId) {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.GET("/api/slots?date=" + date + "&meetingTypeId=" + meetingTypeId),
+            HttpRequest.GET("/api/slots?date=" + date + "&bookingTypeId=" + bookingTypeId),
             new GenericArgument<List<Instant>>() {});
   }
 

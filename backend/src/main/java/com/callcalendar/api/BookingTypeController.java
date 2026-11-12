@@ -2,6 +2,7 @@ package com.callcalendar.api;
 
 import com.callcalendar.domain.BookingType;
 import com.callcalendar.repo.BookingTypeRepository;
+import com.callcalendar.service.BookingTypeNotFoundException;
 import com.callcalendar.service.InvalidRequestException;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Body;
@@ -27,6 +28,11 @@ import java.util.List;
 @Tag(name = "booking-types")
 @Controller
 public class BookingTypeController {
+
+  /** Bounds shared with the booking-types page's validation. */
+  private static final int MIN_DURATION_MINUTES = 5;
+
+  private static final int MAX_DURATION_MINUTES = 240;
 
   private final BookingTypeRepository repository;
 
@@ -70,7 +76,7 @@ public class BookingTypeController {
       content = @Content(schema = @Schema(implementation = BookingTypeResponse.class)))
   @ApiResponse(
       responseCode = "400",
-      description = "Missing or invalid fields (blank title, non-positive duration)",
+      description = "Missing or invalid fields (blank title, duration outside 5-240 minutes)",
       content =
           @Content(
               mediaType = "application/problem+json",
@@ -116,10 +122,7 @@ public class BookingTypeController {
     return repository
         .update(id, title, body.description(), duration, sortOrder, active)
         .map(BookingTypeResponse::from)
-        .orElseThrow(
-            () ->
-                new com.callcalendar.service.BookingTypeNotFoundException(
-                    "no booking type with id " + id));
+        .orElseThrow(() -> notFound(id));
   }
 
   @Delete("/api/host/booking-types/{id}")
@@ -134,10 +137,13 @@ public class BookingTypeController {
               schema = @Schema(implementation = ProblemDetail.class)))
   public HttpResponse<?> delete(@PathVariable long id) {
     if (!repository.deleteById(id)) {
-      throw new com.callcalendar.service.BookingTypeNotFoundException(
-          "no booking type with id " + id);
+      throw notFound(id);
     }
     return HttpResponse.noContent();
+  }
+
+  private static BookingTypeNotFoundException notFound(long id) {
+    return new BookingTypeNotFoundException("no booking type with id " + id);
   }
 
   private static String validateTitle(String raw) {
@@ -147,9 +153,17 @@ public class BookingTypeController {
     return raw.trim();
   }
 
+  /**
+   * Same bounds the booking-types page offers (5-240 minutes): keeping the server rule and the UI
+   * rule identical keeps out-of-range input off the wire instead of off only the form.
+   */
   private static int validateDuration(Integer raw) {
-    if (raw == null || raw <= 0) {
-      throw new InvalidRequestException("durationMinutes must be a positive integer");
+    if (raw == null || raw < MIN_DURATION_MINUTES || raw > MAX_DURATION_MINUTES) {
+      throw new InvalidRequestException(
+          "durationMinutes must be between "
+              + MIN_DURATION_MINUTES
+              + " and "
+              + MAX_DURATION_MINUTES);
     }
     return raw;
   }
