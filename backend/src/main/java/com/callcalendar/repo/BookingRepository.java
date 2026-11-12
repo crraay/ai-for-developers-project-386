@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ public class BookingRepository {
   private static final String EXCLUSION_CHECK_DEADLOCK = "40P01";
 
   private static final String BOOKING_COLUMNS =
-      "id, guest_name, guest_email, start_at, end_at, state, cancellation_token";
+      "id, guest_name, guest_email, start_at, end_at, state, meeting_type_id, cancellation_token";
 
   private final DataSource dataSource;
 
@@ -41,17 +42,27 @@ public class BookingRepository {
   }
 
   public void insert(
-      String guestName, String guestEmail, Instant start, Instant end, String cancellationToken) {
+      String guestName,
+      String guestEmail,
+      Instant start,
+      Instant end,
+      long meetingTypeId,
+      String cancellationToken) {
     String sql =
-        "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state, cancellation_token)"
-            + " VALUES (?, ?, ?, ?, 'active', ?)";
+        "INSERT INTO booking (guest_name, guest_email, start_at, end_at, state, meeting_type_id,"
+            + " cancellation_token) VALUES (?, ?, ?, ?, 'active', ?, ?)";
     try (Connection connection = dataSource.getConnection();
         PreparedStatement statement = connection.prepareStatement(sql)) {
       statement.setString(1, guestName);
       statement.setString(2, guestEmail);
       statement.setTimestamp(3, Timestamp.from(start));
       statement.setTimestamp(4, Timestamp.from(end));
-      statement.setString(5, cancellationToken);
+      if (meetingTypeId > 0) {
+        statement.setLong(5, meetingTypeId);
+      } else {
+        statement.setNull(5, Types.BIGINT);
+      }
+      statement.setString(6, cancellationToken);
       statement.executeUpdate();
     } catch (SQLException e) {
       String sqlState = e.getSQLState();
@@ -152,6 +163,8 @@ public class BookingRepository {
   }
 
   private static Booking readBooking(ResultSet rs) throws SQLException {
+    long meetingTypeId = rs.getLong("meeting_type_id");
+    boolean meetingTypeNull = rs.wasNull();
     return new Booking(
         rs.getLong("id"),
         rs.getString("guest_name"),
@@ -159,6 +172,7 @@ public class BookingRepository {
         rs.getTimestamp("start_at").toInstant(),
         rs.getTimestamp("end_at").toInstant(),
         rs.getString("state"),
+        meetingTypeNull ? 0L : meetingTypeId,
         rs.getString("cancellation_token"));
   }
 }

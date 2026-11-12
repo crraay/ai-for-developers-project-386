@@ -1,9 +1,11 @@
 package com.callcalendar.service;
 
 import com.callcalendar.domain.Booking;
+import com.callcalendar.domain.BookingType;
 import com.callcalendar.domain.Interval;
 import com.callcalendar.domain.SlotUnavailableException;
 import com.callcalendar.repo.BookingRepository;
+import io.micronaut.core.annotation.Nullable;
 import jakarta.inject.Singleton;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -14,9 +16,10 @@ import java.util.HexFormat;
 import java.util.List;
 
 /**
- * Booking use cases: create (UC-3) and cancel via secret token (UC-4). The double-booking invariant
- * is ultimately enforced by the database (ADR-0006); the checks here produce friendly 409s before
- * we get there.
+ * Booking use cases: create (UC-3) and cancel via secret token (UC-4). The duration is derived
+ * server-side from the booking type the guest picked (Issue #28; GLOSSARY.md: "Booking type"). The
+ * double-booking invariant is ultimately enforced by the database (ADR-0006); the checks here
+ * produce friendly 409s before we get there.
  */
 @Singleton
 public class BookingService {
@@ -24,32 +27,45 @@ public class BookingService {
   private static final SecureRandom RANDOM = new SecureRandom();
 
   private final BookingRepository bookingRepository;
+  private final BookingTypeService bookingTypeService;
   private final AvailabilityService availabilityService;
   private final Clock clock;
 
   public BookingService(
-      BookingRepository bookingRepository, AvailabilityService availabilityService, Clock clock) {
+      BookingRepository bookingRepository,
+      BookingTypeService bookingTypeService,
+      AvailabilityService availabilityService,
+      Clock clock) {
     this.bookingRepository = bookingRepository;
+    this.bookingTypeService = bookingTypeService;
     this.availabilityService = availabilityService;
     this.clock = clock;
   }
 
   public Booking create(
-      String startRaw, Integer durationMinutes, String guestName, String guestEmail) {
+      String startRaw, @Nullable Long meetingTypeIdRaw, String guestName, String guestEmail) {
     Instant start = parseStart(startRaw);
-    int duration = parseDuration(durationMinutes);
-    if (!availabilityService.hostSettings().allowsDuration(duration)) {
-      throw new InvalidRequestException("durationMinutes is not an allowed duration");
+    if (meetingTypeIdRaw == null) {
+      throw new InvalidRequestException("meetingTypeId is required");
     }
+    BookingType type = bookingTypeService.requireActive(meetingTypeIdRaw);
+    int duration = type.durationMinutes();
     if (isBlank(guestName) || isBlank(guestEmail)) {
       throw new InvalidRequestException("guestName and guestEmail are required");
     }
     Instant end = start.plus(Duration.ofMinutes(duration));
     validateBookable(start, end);
     String token = generateToken();
-    bookingRepository.insert(guestName.trim(), guestEmail.trim(), start, end, token);
+    bookingRepository.insert(guestName.trim(), guestEmail.trim(), start, end, type.id(), token);
     return new Booking(
-        0, guestName.trim(), guestEmail.trim(), start, end, Booking.STATE_ACTIVE, token);
+        0,
+        guestName.trim(),
+        guestEmail.trim(),
+        start,
+        end,
+        Booking.STATE_ACTIVE,
+        type.id(),
+        token);
   }
 
   public Booking getByToken(String token) {
@@ -100,6 +116,7 @@ public class BookingService {
         booking.start(),
         booking.end(),
         Booking.STATE_CANCELLED,
+        booking.meetingTypeId(),
         booking.cancellationToken());
   }
 
@@ -134,13 +151,6 @@ public class BookingService {
     } catch (DateTimeParseException e) {
       throw new InvalidRequestException("start must be an ISO-8601 instant");
     }
-  }
-
-  private static int parseDuration(Integer durationMinutes) {
-    if (durationMinutes == null) {
-      throw new InvalidRequestException("durationMinutes is required");
-    }
-    return durationMinutes;
   }
 
   private static boolean isBlank(String value) {

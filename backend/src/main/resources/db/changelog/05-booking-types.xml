@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <!-- Issue #28: the host defines booking types (title, description, duration)
+       and the guest picks one instead of a bare duration (GLOSSARY.md:
+       "Booking type"). The booking carries the chosen type's id so the duration
+       is derived server-side; sort_order controls the picker order.
+
+       05-booking-type-table + 05-booking-meeting-type-fk: introduce the
+       booking_type table and add a nullable FK on booking (nullable so the
+       historical rows from before this redesign keep loading; new bookings
+       always set it). The order matters: booking_type must exist before the
+       FK can reference it.
+       05-booking-type-seed: two seeded types of different durations so the
+       full guest path is walkable end-to-end (mise run smoke, README
+       walkthrough). -->
+
+  <changeSet id="09-booking-type-table" author="callcalendar">
+    <createTable tableName="booking_type">
+      <column name="id" type="BIGSERIAL">
+        <constraints primaryKey="true" primaryKeyName="booking_type_pkey"/>
+      </column>
+      <column name="title" type="VARCHAR(120)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="description" type="VARCHAR(1000)"/>
+      <column name="duration_minutes" type="INT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sort_order" type="INT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="active" type="BOOLEAN">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <sql>ALTER TABLE booking_type ADD CONSTRAINT booking_type_duration_positive CHECK (duration_minutes &gt; 0);</sql>
+    <sql>ALTER TABLE booking_type ADD CONSTRAINT booking_type_title_nonblank CHECK (length(btrim(title)) &gt; 0);</sql>
+    <createIndex tableName="booking_type" indexName="booking_type_active_sort_idx">
+      <column name="active"/>
+      <column name="sort_order"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="10-booking-meeting-type-fk" author="callcalendar">
+    <addColumn tableName="booking">
+      <column name="meeting_type_id" type="BIGINT"/>
+    </addColumn>
+    <addForeignKeyConstraint
+      constraintName="booking_meeting_type_fk"
+      baseTableName="booking"
+      baseColumnNames="meeting_type_id"
+      referencedTableName="booking_type"
+      referencedColumnNames="id"
+    />
+    <createIndex tableName="booking" indexName="booking_meeting_type_idx">
+      <column name="meeting_type_id"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet id="11-booking-type-seed" author="callcalendar">
+    <sql>INSERT INTO booking_type (title, description, duration_minutes, sort_order, active) VALUES
+        ('Quick chat', 'A short catch-up for a focused question.', 30, 10, TRUE),
+        ('Deep dive', 'A longer conversation for a deeper talk.', 60, 20, TRUE);</sql>
+  </changeSet>
+</databaseChangeLog>

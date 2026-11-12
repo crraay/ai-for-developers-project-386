@@ -57,6 +57,11 @@ class BookingOverlapTest {
   /** A fixed past instant: raw inserts bypass the booking rules, only the constraint applies. */
   private static final Instant WINDOW_START = Instant.parse("2026-06-01T09:00:00Z");
 
+  /** Issue #28: bookings now carry a meetingTypeId — the two seeded types. */
+  private static final long QUICK_CHAT_ID = 1L;
+
+  private static final long DEEP_DIVE_ID = 2L;
+
   /** How often the two-request race is replayed inside a single test run. */
   private static final int RACE_ROUNDS = 5;
 
@@ -194,7 +199,10 @@ class BookingOverlapTest {
     CreateBookingRequest thirtyMinutes = booking(slot);
     CreateBookingRequest sixtyMinutes =
         new CreateBookingRequest(
-            slot.plus(Duration.ofMinutes(15)).toString(), 60, "Grace Hopper", "grace@example.com");
+            slot.plus(Duration.ofMinutes(15)).toString(),
+            DEEP_DIVE_ID,
+            "Grace Hopper",
+            "grace@example.com");
 
     CountDownLatch atTheStartLine = new CountDownLatch(2);
     CountDownLatch go = new CountDownLatch(1);
@@ -265,6 +273,7 @@ class BookingOverlapTest {
             "ada@example.com",
             start,
             start.plus(Duration.ofMinutes(durationMinutes)),
+            1L /* type id */,
             token);
         return "booked";
       } catch (RuntimeException e) {
@@ -311,12 +320,13 @@ class BookingOverlapTest {
     return client
         .toBlocking()
         .retrieve(
-            HttpRequest.GET("/api/slots?date=" + date + "&durationMinutes=30"),
+            HttpRequest.GET("/api/slots?date=" + date + "&meetingTypeId=" + QUICK_CHAT_ID),
             new GenericArgument<List<Instant>>() {});
   }
 
   private static CreateBookingRequest booking(Instant start) {
-    return new CreateBookingRequest(start.toString(), 30, "Ada Lovelace", "ada@example.com");
+    return new CreateBookingRequest(
+        start.toString(), QUICK_CHAT_ID, "Ada Lovelace", "ada@example.com");
   }
 
   private static LocalDate nextWeekday() {

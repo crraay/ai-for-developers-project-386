@@ -51,7 +51,7 @@ class BookingRepositorySqlStateTest {
             IllegalStateException.class,
             () ->
                 new BookingRepository(stub("23505"))
-                    .insert("Ada Lovelace", "ada@example.com", START, END, TOKEN));
+                    .insert("Ada Lovelace", "ada@example.com", START, END, 1L /* type */, TOKEN));
     SQLException cause = (SQLException) raised.getCause();
     assertNotNull(cause);
     assertEquals("23505", cause.getSQLState());
@@ -64,7 +64,13 @@ class BookingRepositorySqlStateTest {
             expected,
             () ->
                 new BookingRepository(stub(sqlState))
-                    .insert("Ada Lovelace", "ada@example.com", START, END, TOKEN));
+                    .insert(
+                        "Ada Lovelace",
+                        "ada@example.com",
+                        START,
+                        END,
+                        1L /* type */,
+                        TOKEN));
     SQLException cause = (SQLException) thrown.getCause();
     assertNotNull(cause);
     return cause;

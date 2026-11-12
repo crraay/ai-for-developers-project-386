@@ -1,5 +1,6 @@
 package com.callcalendar.service;
 
+import com.callcalendar.domain.BookingType;
 import com.callcalendar.domain.Interval;
 import com.callcalendar.repo.BookingRepository;
 import jakarta.inject.Singleton;
@@ -14,27 +15,31 @@ import java.util.List;
 /**
  * Slot generation per docs/domain.md: slot starts are aligned to the 15-minute grid, fully
  * contained in availability, at least 1 hour and at most 14 days in the future, and free of active
- * bookings.
+ * bookings. The duration comes from the booking type the guest picked (Issue #28).
  */
 @Singleton
 public class SlotService {
 
   private final AvailabilityService availabilityService;
+  private final BookingTypeService bookingTypeService;
   private final BookingRepository bookingRepository;
   private final Clock clock;
 
   public SlotService(
-      AvailabilityService availabilityService, BookingRepository bookingRepository, Clock clock) {
+      AvailabilityService availabilityService,
+      BookingTypeService bookingTypeService,
+      BookingRepository bookingRepository,
+      Clock clock) {
     this.availabilityService = availabilityService;
+    this.bookingTypeService = bookingTypeService;
     this.bookingRepository = bookingRepository;
     this.clock = clock;
   }
 
-  /** Available slot start instants (UTC) for one host-local day. */
-  public List<Instant> slotsFor(LocalDate date, int durationMinutes) {
-    if (!availabilityService.hostSettings().allowsDuration(durationMinutes)) {
-      throw new InvalidRequestException("durationMinutes is not an allowed duration");
-    }
+  /** Available slot start instants (UTC) for one host-local day and a single booking type. */
+  public List<Instant> slotsFor(LocalDate date, long meetingTypeId) {
+    BookingType type = bookingTypeService.requireActive(meetingTypeId);
+    int durationMinutes = type.durationMinutes();
     ZoneId zone = availabilityService.hostZone();
     Duration duration = Duration.ofMinutes(durationMinutes);
     Instant dayStart = date.atStartOfDay(zone).toInstant();

@@ -26,7 +26,7 @@ class SlotServiceHorizonTest {
 
   @Test
   void horizonDayOffersStartsUpToTheHorizonInstant() {
-    List<Instant> starts = slotService.slotsFor(LocalDate.of(2026, 10, 30), 30);
+    List<Instant> starts = slotService.slotsFor(LocalDate.of(2026, 10, 30), 1L /* Quick chat */);
 
     // Window opens 09:00 Berlin = 08:00Z (CET, UTC+1 after the Oct 25 DST change)
     // on that Friday.
