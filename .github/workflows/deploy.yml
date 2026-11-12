@@ -33,6 +33,9 @@ jobs:
           npm ci
           npm --prefix frontend ci
 
+      - name: Install Playwright browser
+        run: npx playwright install chromium
+
       # The same gate CI runs on every push — nothing deploys that check hasn't passed.
       - name: mise run check
         run: mise run check
