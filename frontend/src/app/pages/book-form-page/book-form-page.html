@@ -21,22 +21,35 @@
       <p class="error" role="alert">{{ error() }}</p>
     }
 
-    <form #bookingForm="ngForm" (ngSubmit)="submit()">
+    <form #bookingForm="ngForm" (ngSubmit)="submit()" novalidate>
       <label class="field">
         <span class="field-label">Your name</span>
         <input type="text" name="guestName" [(ngModel)]="guestName" autocomplete="name" required />
       </label>
-      <label class="field">
-        <span class="field-label">Your email</span>
+      <!-- The error sits outside the <label> so it is not folded into the
+           input's accessible name; aria-describedby still associates it. -->
+      <div class="field">
+        <label class="field-label" for="guest-email">Your email</label>
         <input
+          id="guest-email"
           type="email"
           name="guestEmail"
+          #email="ngModel"
           [(ngModel)]="guestEmail"
           autocomplete="email"
           required
           email
+          [attr.aria-invalid]="email.invalid && (email.dirty || email.touched)"
+          [attr.aria-describedby]="
+            email.invalid && (email.dirty || email.touched) ? 'email-error' : null
+          "
         />
-      </label>
+        @if (email.invalid && (email.dirty || email.touched)) {
+          <span id="email-error" class="field-error">
+            Enter a valid email address, e.g. name@example.com.
+          </span>
+        }
+      </div>
       <button class="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
         Confirm booking
       </button>

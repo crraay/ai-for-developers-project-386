@@ -35,8 +35,8 @@ For the duration `d` of the chosen booking type, a valid slot start is:
 - aligned to a 15-minute boundary (:00, :15, :30, :45),
 - fully contained within availability: `[start, start + d] ⊆ availability`,
 - at least 1 hour in the future,
-- before the start of the 15th host-local calendar day (the window ends at the end of the 14th
-  calendar day).
+- before the start of the 15th host-local calendar day, counting today as day 1 (the window ends
+  at the end of the 14th calendar day; the last available date is today + 13).
 
 ## Invariants
 
@@ -60,18 +60,29 @@ For the duration `d` of the chosen booking type, a valid slot start is:
 - Window times are interpreted in the host's configured timezone.
 - The guest UI renders times in the guest's browser-local timezone, clearly
   labeled.
+- The day a guest picks is the **guest's** calendar day: `GET /api/slots`
+  resolves `date` in the browser's IANA zone (`timeZone` query parameter,
+  issue #1). Availability, the 1-hour notice and the 14-day window stay
+  host-local rules evaluated on the same instants, so UI and server keep one
+  window rule. Booking needs no zone: `start` is an absolute instant, exactly
+  the moment the guest was offered.
 
 ## Constants (v1)
 
 | Constant            | Value                                     |
 | ------------------- | ----------------------------------------- |
-| Booking horizon     | 14 calendar days, host-local (ends at start of day 15) |
+| Booking horizon     | 14 calendar days **including today** (today is day 1; last date is today + 13), host-local; ends at the start of day 15 (today + 14) |
 | Minimum notice      | 1 hour                                    |
 | Slot alignment grid | 15 minutes                                |
 | Type duration range | 5–240 min (host-defined; seeded 30 / 60)  |
 
 Constants may become host settings later; that is a trivial change by design.
 
-The booking horizon was narrowed from 90 rolling days to 14 calendar days,
-host-local, to match the product decision recorded in the project spec (see
-docs/product.md).
+**Seeded availability (v1):** Mon-Fri 09:00-17:00 in the host timezone
+`Europe/Berlin` (one recurring window). The window start is the current
+host-local day; the window boundary is recorded in the constants table above.
+
+The booking horizon was narrowed from 90 rolling days to 14 calendar days
+**including today**, host-local, to match the product decision recorded in the
+project spec (see docs/product.md). If today is 1 November, the last available
+date is 14 November.

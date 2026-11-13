@@ -16,6 +16,20 @@ osv-scanner = "2.7.0"
 _.path = ["node_modules/.bin", "frontend/node_modules/.bin"]
 
 # ---------------------------------------------------------------------------
+# Setup. One command for a clean clone; CI and the deploy workflow run the same
+# task, so the local and remote prerequisites cannot drift.
+# ---------------------------------------------------------------------------
+
+[tasks.setup]
+description = "One-time per clone: install root, frontend and TypeSpec JS dependencies plus the Playwright browser"
+run = [
+  "npm ci",
+  "npm --prefix frontend ci",
+  "npm --prefix typespec ci",
+  "npx playwright install chromium",
+]
+
+# ---------------------------------------------------------------------------
 # Checks. `mise run check` runs everything; CI runs exactly this command.
 # ---------------------------------------------------------------------------
 
@@ -49,6 +63,8 @@ run = [
   # Fixed file list on purpose: hexlet-check.yml is managed externally and must
   # not be edited, so it is excluded by omission rather than by an ignore rule.
   "jactionlint .github/workflows/ci.yml .github/workflows/security.yml .github/workflows/release-please.yml .github/workflows/pr-title.yml .github/workflows/deploy.yml",
+  # Issue #38: every ADR must state its status, or the header block stops being a shortcut.
+  "node scripts/check-adr-status.mjs",
 ]
 
 [tasks."check:browser"]

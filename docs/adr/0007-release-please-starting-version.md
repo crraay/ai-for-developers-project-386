@@ -1,5 +1,7 @@
 # Releases start from v0.1.0: git tags line up with the OpenAPI 0.1 line
 
+> **Status: Accepted.**
+
 Releases are produced by **release-please** from the Conventional Commit
 history (commitlint already enforces the convention on commit messages and,
 since this change, on PR titles too). The repository is a single releasable

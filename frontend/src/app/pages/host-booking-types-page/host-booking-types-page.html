@@ -20,40 +20,42 @@
     @if (types()?.length === 0) {
       <p class="hint">No booking types yet — create your first one.</p>
     } @else if (types(); as list) {
-      <table class="types">
-        <thead>
-          <tr>
-            <th scope="col">Order</th>
-            <th scope="col">Title</th>
-            <th scope="col">Duration</th>
-            <th scope="col">Active</th>
-            <th scope="col"><span class="visually-hidden">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (t of list; track t.id) {
-            <tr [class.inactive]="!t.active">
-              <td>{{ t.sortOrder }}</td>
-              <td>
-                <strong>{{ t.title }}</strong>
-                @if (t.description) {
-                  <p class="hint">{{ t.description }}</p>
-                }
-              </td>
-              <td>{{ t.durationMinutes }} min</td>
-              <td>
-                <span class="badge" [class.badge-off]="!t.active">
-                  {{ t.active ? 'Visible' : 'Hidden' }}
-                </span>
-              </td>
-              <td class="row-actions">
-                <button type="button" [disabled]="editing()" (click)="beginEdit(t)">Edit</button>
-                <button type="button" class="danger" (click)="openDelete(t)">Delete</button>
-              </td>
+      <div class="table-scroll" role="region" aria-label="Booking types" tabindex="0">
+        <table class="types">
+          <thead>
+            <tr>
+              <th scope="col">Order</th>
+              <th scope="col">Title</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Active</th>
+              <th scope="col"><span class="visually-hidden">Actions</span></th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (t of list; track t.id) {
+              <tr [class.inactive]="!t.active">
+                <td>{{ t.sortOrder }}</td>
+                <td>
+                  <strong>{{ t.title }}</strong>
+                  @if (t.description) {
+                    <p class="hint">{{ t.description }}</p>
+                  }
+                </td>
+                <td>{{ t.durationMinutes }} min</td>
+                <td>
+                  <span class="badge" [class.badge-off]="!t.active">
+                    {{ t.active ? 'Visible' : 'Hidden' }}
+                  </span>
+                </td>
+                <td class="row-actions">
+                  <button type="button" [disabled]="editing()" (click)="beginEdit(t)">Edit</button>
+                  <button type="button" class="danger" (click)="openDelete(t)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     }
 
     @if (editing()) {

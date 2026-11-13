@@ -22,11 +22,13 @@ public class HostSettingsController {
 
   @Get
   @Operation(
-      summary = "Public host settings: timezone and booking horizon",
+      summary = "Public host settings: timezone and inclusive booking window",
       operationId = "getHostSettings")
   @ApiResponse(
       responseCode = "200",
-      description = "Host settings",
+      description =
+          "Host timezone, the 14-calendar-day window including today, and the seeded"
+              + " Mon-Fri 09:00-17:00 host-local availability",
       content = @Content(schema = @Schema(implementation = HostSettingsResponse.class)))
   public HostSettingsResponse getHostSettings() {
     return new HostSettingsResponse(

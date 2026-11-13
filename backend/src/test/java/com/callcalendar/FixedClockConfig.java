@@ -17,8 +17,9 @@ import java.time.ZoneOffset;
 public class FixedClockConfig {
 
   /**
-   * 2026-10-16T13:10Z: the 14th host-local calendar day from then ends at the start of 2026-10-31
-   * Berlin, which is 2026-10-30T23:00Z (CET after the Oct 25 DST change).
+   * 2026-10-16T13:10Z: the 14-calendar-day window that includes today ends at the start of
+   * 2026-10-30 Berlin (the last bookable date is 2026-10-29), which is 2026-10-29T23:00Z (CET after
+   * the Oct 25 DST change).
    */
   @Singleton
   Clock clock() {

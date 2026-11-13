@@ -8,8 +8,16 @@ import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
 export interface GetSlots$Params {
+  /**
+   * Calendar date the guest picked (yyyy-mm-dd). Resolved in `timeZone`, so it is the guest's calendar day and not the host's (UC-2, Issue #1).
+   */
   date: string;
   bookingTypeId: number;
+
+  /**
+   * IANA zone of the asking browser, e.g. `Asia/Tokyo`. Omitted or empty means the host timezone (the day is read host-local, the pre-Issue #1 rule); an unknown id is a 400. The booking window itself stays host-local regardless of this value.
+   */
+  timeZone?: string;
 }
 
 export function getSlots(
@@ -22,6 +30,7 @@ export function getSlots(
   if (params) {
     rb.query('date', params.date, { explode: false });
     rb.query('bookingTypeId', params.bookingTypeId, { explode: false });
+    rb.query('timeZone', params.timeZone, { explode: false });
   }
 
   return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(

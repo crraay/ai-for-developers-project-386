@@ -1,5 +1,7 @@
 # iCal4j for RRULE parsing and expansion
 
+> **Status: Accepted.**
+
 Recurring windows are stored as RFC 5545 RRULE strings (plus a host-local
 DTSTART/DTEND), and the backend expands them into concrete UTC instants for
 slot generation. We use **iCal4j** (`org.mnode.ical4j:ical4j`, BSD-3) through

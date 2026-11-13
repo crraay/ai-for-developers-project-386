@@ -139,7 +139,7 @@ paths:
   /api/host-settings:
     get:
       operationId: getHostSettings
-      summary: 'Public host settings: timezone and booking horizon'
+      summary: 'Public host settings: timezone and inclusive booking window'
       parameters: []
       responses:
         '200':
@@ -299,11 +299,12 @@ paths:
   /api/slots:
     get:
       operationId: getSlots
-      summary: Available slot start times for a host-local day, filtered by booking type
+      summary: Available slot start times for one calendar day, filtered by booking type
       parameters:
         - name: date
           in: query
           required: true
+          description: "Calendar date the guest picked (yyyy-mm-dd). Resolved in `timeZone`, so it is the guest's calendar day and not the host's (UC-2, Issue #1)."
           schema:
             type: string
           explode: false
@@ -313,6 +314,13 @@ paths:
           schema:
             type: integer
             format: int64
+          explode: false
+        - name: timeZone
+          in: query
+          required: false
+          description: 'IANA zone of the asking browser, e.g. `Asia/Tokyo`. Omitted or empty means the host timezone (the day is read host-local, the pre-Issue #1 rule); an unknown id is a 400. The booking window itself stays host-local regardless of this value.'
+          schema:
+            type: string
           explode: false
       responses:
         '200':
@@ -324,7 +332,7 @@ paths:
                 items:
                   type: string
         '400':
-          description: Malformed date or unknown / inactive bookingTypeId
+          description: Malformed date, unparsable timeZone, or unknown / inactive bookingTypeId
           content:
             application/problem+json:
               schema:
@@ -403,7 +411,7 @@ components:
           type: string
         guestEmail:
           type: string
-      description: 'Body of POST /api/bookings. The guest picks a booking type and the server derives `durationMinutes` from it (GLOSSARY.md: "Booking type"). Fields are nullable because input is untrusted.'
+      description: 'Body of POST /api/bookings. The guest picks a booking type and the server derives `durationMinutes` from it (GLOSSARY.md: "Booking type"). Fields are nullable because input is untrusted. `start` is an absolute UTC instant, the exact moment the guest saw offered - booking therefore needs no timezone parameter (UC-3, Issue #1: only browsing a calendar day is zone-sensitive).'
     CreateBookingTypeRequest:
       type: object
       required:
@@ -455,10 +463,12 @@ components:
       properties:
         timezone:
           type: string
+          description: "IANA timezone the host's availability is defined in (seeded: Europe/Berlin)."
         bookingHorizonDays:
           type: integer
           format: int32
-      description: 'Public host settings the guest UI needs: timezone and the number of calendar days a guest can book ahead. Allowed durations now live in booking_type.'
+          description: 'Number of calendar days the guest may book ahead, including today (seeded: 14).'
+      description: 'Public host settings the guest UI needs: the host timezone and the inclusive booking window. The window opens on the current host-local day and `bookingHorizonDays` includes today (14 means the last bookable date is today + 13). Seeded availability is Mon-Fri 09:00-17:00 host-local (`Europe/Berlin`); allowed durations live in booking_type.'
     ProblemDetail:
       type: object
       required:

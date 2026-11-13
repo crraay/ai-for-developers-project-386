@@ -71,6 +71,7 @@ class BookingFlowTest {
             .toBlocking()
             .retrieve(HttpRequest.GET("/api/host-settings"), HostSettingsResponse.class);
     assertEquals("Europe/Berlin", settings.timezone());
+    // 14 calendar days including today: the last bookable date is today + 13.
     assertEquals(14, settings.bookingHorizonDays());
   }
 

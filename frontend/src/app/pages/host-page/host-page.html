@@ -54,45 +54,49 @@
     @if (upcoming().length === 0) {
       <p class="hint">{{ emptyMessage() }}</p>
     } @else {
-      <table class="bookings">
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Time</th>
-            <th scope="col">Duration</th>
-            <th scope="col">Type</th>
-            <th scope="col">Name</th>
-            <th scope="col">Email</th>
-            <th scope="col">Status</th>
-            <th scope="col"><span class="visually-hidden">Action</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (b of upcoming(); track b.id) {
-            <tr [class.cancelled]="b.state === 'cancelled'">
-              <td>{{ formatDate(b.start) }}</td>
-              <td>{{ formatTimeRange(b.start, b.end) }}</td>
-              <td>{{ formatDuration(b.start, b.end) }}</td>
-              <td>{{ typeTitle(b.bookingTypeId) }}</td>
-              <td>{{ b.guestName }}</td>
-              <td>{{ b.guestEmail }}</td>
-              <td>{{ b.state === 'active' ? 'Confirmed' : 'Cancelled' }}</td>
-              <td>
-                @if (canCancelRow(b)) {
-                  <button
-                    type="button"
-                    class="danger"
-                    [attr.aria-label]="'Cancel ' + b.guestName + '\u2019s booking'"
-                    (click)="openCancelDialog(b)"
-                  >
-                    Cancel
-                  </button>
-                }
-              </td>
+      <!-- Wide table: keep it scrollable on its own instead of overflowing the
+           page on phones. tabindex makes the scroll region keyboard-reachable. -->
+      <div class="table-scroll" role="region" aria-label="Upcoming bookings" tabindex="0">
+        <table class="bookings">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Time</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Type</th>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+              <th scope="col"><span class="visually-hidden">Action</span></th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (b of upcoming(); track b.id) {
+              <tr [class.cancelled]="b.state === 'cancelled'">
+                <td>{{ formatDate(b.start) }}</td>
+                <td>{{ formatTimeRange(b.start, b.end) }}</td>
+                <td>{{ formatDuration(b.start, b.end) }}</td>
+                <td>{{ typeTitle(b.bookingTypeId) }}</td>
+                <td>{{ b.guestName }}</td>
+                <td>{{ b.guestEmail }}</td>
+                <td>{{ b.state === 'active' ? 'Confirmed' : 'Cancelled' }}</td>
+                <td>
+                  @if (canCancelRow(b)) {
+                    <button
+                      type="button"
+                      class="danger"
+                      [attr.aria-label]="'Cancel ' + b.guestName + '\u2019s booking'"
+                      (click)="openCancelDialog(b)"
+                    >
+                      Cancel
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     }
   }
 

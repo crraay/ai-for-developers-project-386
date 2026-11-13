@@ -44,7 +44,7 @@ model BookingTypeResponse {
   active: boolean;
 }
 
-@doc("Body of POST /api/bookings. The guest picks a booking type and the server derives `durationMinutes` from it (GLOSSARY.md: \"Booking type\"). Fields are nullable because input is untrusted.")
+@doc("Body of POST /api/bookings. The guest picks a booking type and the server derives `durationMinutes` from it (GLOSSARY.md: \"Booking type\"). Fields are nullable because input is untrusted. `start` is an absolute UTC instant, the exact moment the guest saw offered - booking therefore needs no timezone parameter (UC-3, Issue #1: only browsing a calendar day is zone-sensitive).")
 model CreateBookingRequest {
   start: string;
   bookingTypeId?: int64 | null;
@@ -70,9 +70,12 @@ model HostBookingResponse {
   bookingTypeId: int64;
 }
 
-@doc("Public host settings the guest UI needs: timezone and the number of calendar days a guest can book ahead. Allowed durations now live in booking_type.")
+@doc("Public host settings the guest UI needs: the host timezone and the inclusive booking window. The window opens on the current host-local day and `bookingHorizonDays` includes today (14 means the last bookable date is today + 13). Seeded availability is Mon-Fri 09:00-17:00 host-local (`Europe/Berlin`); allowed durations live in booking_type.")
 model HostSettingsResponse {
+  @doc("IANA timezone the host's availability is defined in (seeded: Europe/Berlin).")
   timezone: string;
+
+  @doc("Number of calendar days the guest may book ahead, including today (seeded: 14).")
   bookingHorizonDays: int32;
 }
 
@@ -125,7 +128,7 @@ model CancelConflict {
   @body body: ProblemDetail;
 }
 
-@doc("Malformed date or unknown / inactive bookingTypeId")
+@doc("Malformed date, unparsable timeZone, or unknown / inactive bookingTypeId")
 model SlotsBadRequest {
   @statusCode statusCode: 400;
   @header contentType: "application/problem+json";
@@ -252,12 +255,15 @@ interface Ping {
 @tag("slots")
 @route("/api/slots")
 interface Slots {
-  @summary("Available slot start times for a host-local day, filtered by booking type")
+  @summary("Available slot start times for one calendar day, filtered by booking type")
   @operationId("getSlots")
   @get
   getSlots(
+    @doc("Calendar date the guest picked (yyyy-mm-dd). Resolved in `timeZone`, so it is the guest's calendar day and not the host's (UC-2, Issue #1).")
     @query date: string,
     @query bookingTypeId: int64,
+    @doc("IANA zone of the asking browser, e.g. `Asia/Tokyo`. Omitted or empty means the host timezone (the day is read host-local, the pre-Issue #1 rule); an unknown id is a 400. The booking window itself stays host-local regardless of this value.")
+    @query timeZone?: string,
   ): GetSlotsResponse | SlotsBadRequest;
 }
 
@@ -349,7 +355,7 @@ interface HostBookings {
 @tag("host-settings")
 @route("/api/host-settings")
 interface HostSettings {
-  @summary("Public host settings: timezone and booking horizon")
+  @summary("Public host settings: timezone and inclusive booking window")
   @operationId("getHostSettings")
   @get
   getHostSettings(): GetHostSettingsResponse;
