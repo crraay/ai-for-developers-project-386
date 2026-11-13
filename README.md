@@ -173,6 +173,10 @@ cd frontend && mise exec -- npm test -- --watch=false   # Vitest
 ```
 
 The frontend never calls the API through hand-written URLs: the typed client in
-`frontend/src/app/api/` is generated from `openapi/api.yml` (exported from the
-backend's Micronaut annotations) — see [ADR-0003](docs/adr/0003-openapi-code-first-ng-openapi-gen.md).
+`frontend/src/app/api/` is generated from `openapi/api.yml`, which is compiled
+from the TypeSpec contract in `typespec/` with one command
+(`mise run generate`) — see
+[ADR-0008](docs/adr/0008-typespec-contract-source.md). The earlier code-first
+pipeline is documented in the superseded
+[ADR-0003](docs/adr/0003-openapi-code-first-ng-openapi-gen.md).
 

@@ -18,7 +18,7 @@ The agent shell reports a spurious "exit code 1" whenever a command writes to st
 
 `mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness) and must pass before a change is done; CI runs the same command on every push. There is no pre-push hook — run it yourself. `mise run fix` applies the safe autofixes.
 
-Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. Change the source (backend annotations / `ng-openapi-gen.json`) and run `mise run generate`; CI fails on stale output.
+Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. The contract source is `typespec/main.tsp` (ADR-0008): change it, run `mise run generate` (TypeSpec → `openapi/api.yml` → Angular client), and commit the regenerated output; CI fails on stale output.
 
 Lint rules are never disabled to get a change through. Exceptions are narrow (one path, one rule), carry a written reason, and need a human decision.
 
