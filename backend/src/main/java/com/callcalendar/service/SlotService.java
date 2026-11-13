@@ -17,8 +17,8 @@ import java.util.List;
  * contained in availability, at least 1 hour in the future and inside the inclusive 14-calendar-day
  * window (the last date is today + 13), and free of active bookings. The duration comes from the
  * booking type the guest picked (Issue #28). The queried day itself is resolved in the caller's
- * timezone — the guest's calendar day, not the host's (UC-2, Issue #1); availability, notice and
- * horizon remain host-local rules on the same instants.
+ * timezone — the guest's calendar day, not the host's (UC-2, Issue #1); availability, the 1-hour
+ * notice and the booking window remain host-local rules on the same instants.
  */
 @Singleton
 public class SlotService {

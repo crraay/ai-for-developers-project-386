@@ -54,10 +54,12 @@ class SlotGuestZoneTest {
     // Every start offered under the picked date falls on that date in the guest's calendar...
     guestDay.forEach(start -> assertEquals(day, start.atZone(GUEST_AHEAD).toLocalDate()));
     // ...while the host-local answer (sent when timeZone is omitted) runs past the guest's
-    // midnight — those are the wrong-day times Issue #1 reports, so it must be a strict superset.
+    // midnight — those are the wrong-day times Issue #1 reports. Comparing set sizes would be a
+    // thin margin (the two days overlap for most of the window), so assert the actual defect:
+    // the host-local list still contains starts that are already tomorrow for the guest.
     assertTrue(
-        hostDay.size() > guestDay.size(),
-        () -> "host day " + hostDay.size() + " starts, guest day " + guestDay.size() + " starts");
+        hostDay.stream().anyMatch(start -> !day.equals(start.atZone(GUEST_AHEAD).toLocalDate())),
+        "the host-local answer must contain starts outside the guest's calendar day");
     hostDay.forEach(start -> assertEquals(day, start.atZone(BERLIN).toLocalDate()));
   }
 

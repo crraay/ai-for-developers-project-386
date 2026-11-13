@@ -63,6 +63,8 @@ run = [
   # Fixed file list on purpose: hexlet-check.yml is managed externally and must
   # not be edited, so it is excluded by omission rather than by an ignore rule.
   "jactionlint .github/workflows/ci.yml .github/workflows/security.yml .github/workflows/release-please.yml .github/workflows/pr-title.yml .github/workflows/deploy.yml",
+  # Issue #38: every ADR must state its status, or the header block stops being a shortcut.
+  "node scripts/check-adr-status.mjs",
 ]
 
 [tasks."check:browser"]
