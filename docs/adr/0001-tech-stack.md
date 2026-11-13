@@ -1,5 +1,7 @@
 # Tech stack: Angular + Micronaut + PostgreSQL + Docker Compose
 
+> **Status: Accepted.**
+
 Call Calendar is built as a monorepo with an Angular SPA (`/frontend`), a
 Java 25 + Micronaut REST API (`/backend`, Gradle), and PostgreSQL, wired
 together by a root `docker-compose.yml`. This is deliberately heavier than the

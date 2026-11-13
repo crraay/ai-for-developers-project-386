@@ -1,5 +1,7 @@
 # Quality gates: mise tasks + hk hooks + dev-quality-gates subset
 
+> **Status: Accepted.**
+
 All lint/test/hygiene checks are gathered into **`mise run check`** (mise
 tasks), runnable locally and in CI as the same command ([`ci.yml`](../../.github/workflows/ci.yml)
 runs it on every push). Git hooks via **hk** add a fast pre-commit tier

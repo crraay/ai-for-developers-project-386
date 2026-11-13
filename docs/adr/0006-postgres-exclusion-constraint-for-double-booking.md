@@ -1,5 +1,7 @@
 # PostgreSQL exclusion constraint enforces the no-double-booking invariant
 
+> **Status: Accepted.**
+
 "At most one active booking covers any instant" is enforced by the database,
 not the application: a GiST exclusion constraint on
 `tstzrange(start_at, end_at, '[)') WHERE state = 'active'` makes concurrent

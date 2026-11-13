@@ -1,5 +1,7 @@
 # Migrations: Liquibase over Flyway
 
+> **Status: Accepted.**
+
 The backend manages its PostgreSQL schema with Liquibase
 (`src/main/resources/db/changelog/`, XML master changelog, changesets included
 from it). Flyway is the more common Micronaut default and would have worked
