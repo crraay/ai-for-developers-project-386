@@ -230,6 +230,18 @@ test('the booking window is exactly the first 14 calendar days', async ({ page }
   await dayInput.press('Tab');
   await expect(page.locator('.slot-link').first()).toBeVisible({ timeout: 10_000 });
 
+  // ...and it is bookable, not just browsable: the very last day of the
+  // window accepts a booking with 201.
+  const lastDayBooking = await page.request.post(`${API}/api/bookings`, {
+    data: {
+      start: lastDayStarts[0],
+      bookingTypeId: typeId,
+      guestName: 'Vera Horizon',
+      guestEmail: 'vera@example.com',
+    },
+  });
+  expect(lastDayBooking.status()).toBe(201);
+
   // The first day of the window is served rather than rejected. Whether it
   // shows slots depends on the time of day (1-hour notice), so the status
   // code is the assertion.
