@@ -280,3 +280,129 @@ test('the booking window is exactly the first 14 calendar days', async ({ page }
   });
   expect(postResponse.status()).toBe(409);
 });
+
+test('a second guest racing for the same slot is refused and one booking survives', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+
+  const settingsResponse = await page.request.get(`${API}/api/host-settings`);
+  expect(settingsResponse.ok()).toBeTruthy();
+  const { timezone: hostTimeZone } = await settingsResponse.json();
+  const types = await (await page.request.get(`${API}/api/booking-types`)).json();
+  const typeId = types[0].id;
+  const bookingDay = futureWeekdayDate(hostTimeZone);
+
+  // Take the slot exactly where a guest meets it: off the picker's own link.
+  await page.goto('/book');
+  await expect(page.getByRole('heading', { name: 'Pick a time' })).toBeVisible();
+  const dayInput = page.getByLabel('Day');
+  await dayInput.fill(bookingDay);
+  await dayInput.press('Tab');
+  const slotLink = page.locator('.slot-link').first();
+  await expect(slotLink).toBeVisible({ timeout: 10_000 });
+  // Wait for the chosen day to land in the hrefs so a stale slot from the default day is
+  // never taken for the racing booking.
+  await expect(slotLink).toHaveAttribute('href', new RegExp(bookingDay));
+  const href = (await slotLink.getAttribute('href')) ?? '';
+  const start = decodeURIComponent(href.split('?')[0].replace('/book/', ''));
+
+  // Guest A takes it against the real server.
+  const first = await page.request.post(`${API}/api/bookings`, {
+    data: {
+      start,
+      bookingTypeId: typeId,
+      guestName: 'Ada First',
+      guestEmail: 'first@example.com',
+    },
+  });
+  expect(first.status()).toBe(201);
+
+  // Guest B opens the confirm page for the very same slot and submits through the UI —
+  // the race the backend tests cover, now exercised through the browser (review gap).
+  await page.goto(href);
+  await expect(page.getByRole('heading', { name: 'Confirm your booking' })).toBeVisible();
+  await page.getByLabel('Your name').fill('Ada Second');
+  await page.getByLabel('Your email').fill('second@example.com');
+  await page.getByRole('button', { name: 'Confirm booking' }).click();
+
+  // The loser is told what happened instead of failing silently...
+  await expect(page.getByRole('alert')).toContainText(/no longer available/i);
+
+  // ...and the server still holds exactly one booking for that interval.
+  const bookings = await (await page.request.get(`${API}/api/bookings`)).json();
+  const sameSlot = bookings.filter((booking: { start: string }) => booking.start === start);
+  expect(sameSlot).toHaveLength(1);
+  expect(sameSlot[0].guestEmail).toBe('first@example.com');
+});
+
+test.describe('guest whose calendar leads the host (issue #1)', () => {
+  test('the picker sends its own zone and offers only that calendar day', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    // Auckland is 10-12 hours ahead of Berlin in every DST combination, so its calendar day
+    // closes while the host's 09:00-17:00 window still has hours left. Playwright's `timeZone`
+    // context option is not honoured by the bundled Chromium in this setup (the page keeps the
+    // host's zone - verified), so pin the guest's zone the way Playwright would have done it
+    // internally: CDP emulation. The browser then reports Auckland from `Intl` for real, and the
+    // server does the actual work - no API response is faked.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setTimezoneOverride', { timezoneId: 'Pacific/Auckland' });
+
+    const settingsResponse = await page.request.get(`${API}/api/host-settings`);
+    expect(settingsResponse.ok()).toBeTruthy();
+    const { timezone: hostTimeZone, bookingHorizonDays } = await settingsResponse.json();
+    const types = await (await page.request.get(`${API}/api/booking-types`)).json();
+    const typeId = types[0].id;
+    const bookingDay = futureWeekdayDate(hostTimeZone);
+
+    const requestedZones: Array<string | null> = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/api/slots')) {
+        requestedZones.push(new URL(request.url()).searchParams.get('timeZone'));
+      }
+    });
+
+    await page.goto('/book');
+    await expect(page.getByRole('heading', { name: 'Pick a time' })).toBeVisible();
+
+    // The window is the host's, whatever zone the browser reports: 14 host-local days.
+    const today = formatDateInTimeZone(new Date(), hostTimeZone);
+    const lastDay = addDaysToDateString(today, bookingHorizonDays - 1);
+    const dayInput = page.getByLabel('Day');
+    await expect(dayInput).toHaveAttribute('min', today);
+    await expect(dayInput).toHaveAttribute('max', lastDay);
+
+    await dayInput.fill(bookingDay);
+    await dayInput.press('Tab');
+    const slotLinks = page.locator('.slot-link');
+    await expect(slotLinks.first()).toBeVisible({ timeout: 10_000 });
+    // Wait for the chosen day to land in the hrefs so slots from the default day are never
+    // judged against this date.
+    await expect(slotLinks.first()).toHaveAttribute('href', new RegExp(bookingDay));
+    expect(requestedZones).toContain('Pacific/Auckland');
+
+    // Every start offered under the picked date falls on that date in the guest's calendar...
+    const hrefs = await slotLinks.evaluateAll((links) =>
+      links.map((link) => link.getAttribute('href') ?? ''),
+    );
+    const guestStarts = hrefs.map((href) =>
+      new Date(decodeURIComponent(href.split('?')[0].replace('/book/', ''))),
+    );
+    expect(guestStarts.length).toBeGreaterThan(0);
+    guestStarts.forEach((start) =>
+      expect(formatDateInTimeZone(start, 'Pacific/Auckland')).toBe(bookingDay),
+    );
+
+    // ...while the host-local answer for the same date runs past the guest's midnight — the
+    // wrong-day times issue #1 reports — so API and browser no longer claim the same day.
+    const hostDayResponse = await page.request.get(
+      `${API}/api/slots?date=${bookingDay}&bookingTypeId=${typeId}`,
+    );
+    expect(hostDayResponse.ok()).toBeTruthy();
+    const hostStarts = await hostDayResponse.json();
+    expect(hostStarts.length).toBeGreaterThan(guestStarts.length);
+    const lastHostStart = new Date(hostStarts[hostStarts.length - 1]);
+    expect(formatDateInTimeZone(lastHostStart, 'Pacific/Auckland')).not.toBe(bookingDay);
+  });
+});
