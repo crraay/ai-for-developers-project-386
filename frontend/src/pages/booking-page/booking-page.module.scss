@@ -1,0 +1,39 @@
+.details {
+  display: grid;
+  gap: 0.25rem 1rem;
+  grid-template-columns: max-content 1fr;
+  margin-bottom: 1.5rem;
+
+  dt {
+    color: #656d76;
+    font-weight: 600;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.danger {
+  background: #fff;
+  border: 1px solid #cf222e;
+  border-radius: 6px;
+  color: #cf222e;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.hint {
+  color: #656d76;
+  margin-top: 1rem;
+}
+
+.error {
+  color: #cf222e;
+}
