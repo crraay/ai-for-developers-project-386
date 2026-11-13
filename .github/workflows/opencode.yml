@@ -1,0 +1,60 @@
+name: opencode
+
+# A comment that mentions /oc or /opencode asks the agent to explain the
+# thread, fix the issue, or review code. The comment body is used as data
+# only: it is never interpolated into a shell command.
+#
+# `issue_comment` is a dangerous trigger by design: it runs in the context of
+# the default branch with the job's secrets and token, and anyone who can
+# comment can start it. It is the only trigger that carries the comment, so the
+# finding is accepted with one scoped, expiring exception in
+# .github/jactionlint.yaml. The mitigations live here: GITHUB_TOKEN cannot
+# write, secrets are read only by the agent step, the OpenCode action refuses
+# actors without admin or write access, and no pull-request code is checked
+# out or executed.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+# Deny every token permission by default; the job asks for the two it needs.
+permissions: {}
+
+# One agent run per issue or pull request. A second /oc queues behind the
+# first instead of working on the same checkout, and an in-flight run is never
+# cancelled: its branch edits would stay behind while the run is gone.
+# `issue.number` is set for issue_comment; review comments carry the PR number.
+concurrency:
+  group: opencode-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  opencode:
+    # Bot comments are ignored so the agent cannot answer itself in a loop.
+    if: |
+      github.event.comment.user.type == 'User' &&
+      (contains(github.event.comment.body, '/oc') ||
+       contains(github.event.comment.body, '/opencode'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # checkout of this repository
+      id-token: write # OIDC exchange for the OpenCode App token
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # The App token from the OIDC exchange carries contents/issues/
+      # pull-requests write; this workflow's GITHUB_TOKEN stays read-only, and
+      # the action refuses actors without admin or write access to the repo.
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # latest, 2026-11-13
+        with:
+          model: opencode-go/deepseek-v4.1-flash
+          mentions: /oc,/opencode
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
