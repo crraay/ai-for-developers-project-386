@@ -1,59 +1,37 @@
-# Frontend
+# Call Calendar — frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.5.
+React SPA (React 19 + Vite + TypeScript) for the Call Calendar booking service.
+See the repo root `README.md` for the full stack and `docs/adr/0009-react-frontend.md`
+for why React replaced Angular.
 
-## Development server
+## Local development
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+From the repository root, `mise run setup` installs the JS dependencies once.
 
 ```bash
-ng generate component component-name
+npm start          # Vite dev server on http://localhost:4200
+npm run build      # type-check, then production build into dist/
+npm test           # Vitest + Testing Library, one worker (Windows-safe gate)
+npm run lint       # ESLint (flat config)
+npm run lint:scss  # stylelint over the SCSS modules
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+The Vite mode picks the API base URL from `.env.development` /
+`.env.production` (`VITE_API_BASE_URL`); `npm run build -- --mode=development`
+builds a bundle that talks to `http://localhost:8080`.
 
-```bash
-ng generate --help
-```
+## Structure
 
-## Building
+- `src/main.tsx` — bootstraps the client, QueryClient and router.
+- `src/App.tsx` — app shell (header, guest/host switch) plus the route table.
+- `src/pages/**` — one folder per routed page: component, CSS module and spec.
+- `src/lib/**` — timezone helpers, RFC 7807 error mapping, document title.
+- `src/api/**` — **generated** from `openapi/api.yml` by `@hey-api/openapi-ts`
+  (`mise run generate`); never edit these files by hand (ADR-0008).
+- `src/test/**` — MSW server and the provider-aware render helpers.
 
-To build the project run:
+## API client
 
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+`mise run generate` runs TypeSpec, then `npm run generate:api`, which writes the
+typed SDK plus TanStack Query options into `src/api`. The committed output is
+checked for freshness in CI.

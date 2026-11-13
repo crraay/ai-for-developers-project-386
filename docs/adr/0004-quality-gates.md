@@ -10,14 +10,17 @@ There is no pre-push hook: `mise run check` is run explicitly (CI runs it on
 every push). The tool selection follows
 [dev-quality-gates](https://github.com/mokevnin/dev-quality-gates): backend =
 Spotless + Error Prone + NullAway (all failing the build), frontend =
-angular-eslint + prettier + stylelint, cross-cutting = typos, betterleaks,
+eslint + prettier + stylelint (plus axe-core in the browser suite since the React
+migration, ADR-0009), cross-cutting = typos, betterleaks,
 hadolint, jactionlint, vacuum, osv-scanner, commitlint.
 
 ## Deliberate deviations and scoping
 
-- **angular-eslint, not oxlint** (the list's JS pick): oxlint parses 0/39
-  Angular template rules, and template linting (accessibility, syntax) is the
-  higher-value check for this project.
+- **eslint + axe-core, not oxlint** (the list's JS pick): oxlint cannot express
+  the framework-level checks this project leans on. Under Angular that was
+  template linting (accessibility, syntax); since ADR-0009 it is the React hooks
+  rules plus a real-browser accessibility scan, which also covers
+  runtime-composed ARIA.
 - **osv-scanner runs scheduled-only** (`security.yml`, weekly), not on push: a
   new advisory must not break unrelated pushes (quality-gates pattern).
   Suppressions use `ignoreUntil` so they expire (`osv-scanner.toml`).
