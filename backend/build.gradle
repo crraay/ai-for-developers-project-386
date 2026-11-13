@@ -75,20 +75,9 @@ spotless {
     }
 }
 
-// Copies the generated OpenAPI spec to the repo-level openapi/ dir (committed;
-// the frontend client is generated from it and CI checks both are fresh)
-tasks.register("exportOpenApi", Copy) {
-    dependsOn tasks.named("classes")
-    from(layout.buildDirectory.dir("classes/java/main/META-INF/swagger")) {
-        include("*.yml")
-    }
-    into(layout.projectDirectory.dir("../openapi"))
-    rename(".*\\.yml", "api.yml")
-}
-
-
-
-
+// The OpenAPI spec is no longer exported from the annotation output: it is
+// compiled from typespec/ (ADR-0008) by `mise run generate`. The annotations
+// still feed the runtime Swagger UI only.
 graalvmNative.toolchainDetection = false
 graalvmNative {
     binaries {
