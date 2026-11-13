@@ -7,7 +7,13 @@ import { listActiveBookingTypes } from '../../api/fn/booking-types/list-active-b
 import { getHostSettings } from '../../api/fn/host-settings/get-host-settings';
 import { getSlots } from '../../api/fn/slots/get-slots';
 import type { BookingTypeResponse } from '../../api/models/booking-type-response';
-import { addDaysToDateString, dateInTimeZone, formatLocalTime, localTimeZone } from '../../time';
+import {
+  addDaysToDateString,
+  dateInTimeZone,
+  defaultBookingDate,
+  formatLocalTime,
+  localTimeZone,
+} from '../../time';
 
 /** UC-2: pick a day and booking type, browse available start times. */
 @Component({
@@ -41,7 +47,9 @@ export class BookPage {
         const horizonDate = addDaysToDateString(today, settings.bookingHorizonDays - 1, hostZone);
         this.minDate.set(today);
         this.maxDate.set(horizonDate);
-        this.date.set(today);
+        // Issue #1: the bounds stay the host's 14-day window, but the day the guest books is
+        // their own — open on their today when it lies inside the window.
+        this.date.set(defaultBookingDate(today, horizonDate, dateInTimeZone(this.timeZone)));
         this.types.set(types);
         this.bookingTypeId.set(types[0]?.id ?? null);
         this.loadSlots();
@@ -68,12 +76,15 @@ export class BookPage {
       return;
     }
     this.error.set(null);
-    this.api.invoke(getSlots, { date: this.date(), bookingTypeId: id }).subscribe({
-      next: (starts) => this.slots.set(starts),
-      error: () => {
-        this.slots.set([]);
-        this.error.set('Could not load slots.');
-      },
-    });
+    // The server must read the picked date in the guest's own calendar (UC-2, issue #1).
+    this.api
+      .invoke(getSlots, { date: this.date(), bookingTypeId: id, timeZone: this.timeZone })
+      .subscribe({
+        next: (starts) => this.slots.set(starts),
+        error: () => {
+          this.slots.set([]);
+          this.error.set('Could not load slots.');
+        },
+      });
   }
 }

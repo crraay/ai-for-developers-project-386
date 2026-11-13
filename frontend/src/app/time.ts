@@ -81,3 +81,20 @@ export function addDaysToDateString(dateString: string, days: number, timeZone: 
   instant.setUTCDate(instant.getUTCDate() + days);
   return dateInTimeZone(timeZone, instant);
 }
+
+/**
+ * The date the booking calendar opens on (UC-2, issue #1): the guest's own today when it lies
+ * inside the booking window, otherwise the nearest window edge. The bounds are the host's
+ * window (docs/domain.md), so the default can never leave it — a guest whose local day is
+ * already over starts on the window's first day, a guest ahead of the host books their own
+ * today.
+ */
+export function defaultBookingDate(minDate: string, maxDate: string, guestToday: string): string {
+  if (guestToday < minDate) {
+    return minDate;
+  }
+  if (guestToday > maxDate) {
+    return maxDate;
+  }
+  return guestToday;
+}

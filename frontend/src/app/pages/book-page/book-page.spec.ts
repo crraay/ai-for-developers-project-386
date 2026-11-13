@@ -4,7 +4,13 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { provideApiConfiguration } from '../../api/api-configuration';
 import { BookPage } from './book-page';
-import { addDaysToDateString, dateInTimeZone, formatLocalTime, localTimeZone } from '../../time';
+import {
+  addDaysToDateString,
+  dateInTimeZone,
+  defaultBookingDate,
+  formatLocalTime,
+  localTimeZone,
+} from '../../time';
 
 describe('BookPage', () => {
   let httpTesting: HttpTestingController;
@@ -126,5 +132,26 @@ describe('BookPage', () => {
     ) as HTMLInputElement;
     expect(dateInput.min).toBe(expectedMin);
     expect(dateInput.max).toBe(expectedMax);
+  });
+
+  it('asks the server to resolve the picked day in the browser timezone (issue #1)', () => {
+    const fixture = TestBed.createComponent(BookPage);
+    fixture.detectChanges();
+    httpTesting.expectOne('http://localhost:8080/api/host-settings').flush(hostSettings);
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(types);
+
+    const request = httpTesting.expectOne((req) => req.urlWithParams.includes('/api/slots'));
+    expect(request.request.params.get('timeZone')).toBe(localTimeZone());
+    request.flush([]);
+    fixture.detectChanges();
+  });
+
+  it('opens on the guest today when it lies inside the window, else on the window start', () => {
+    // The window is host-local; the guest's today may lead it (guest ahead), match it, or lag it
+    // (guest behind, whose today is already over from the host's point of view).
+    expect(defaultBookingDate('2026-11-13', '2026-11-26', '2026-11-14')).toBe('2026-11-14');
+    expect(defaultBookingDate('2026-11-13', '2026-11-26', '2026-11-13')).toBe('2026-11-13');
+    expect(defaultBookingDate('2026-11-13', '2026-11-26', '2026-11-12')).toBe('2026-11-13');
+    expect(defaultBookingDate('2026-11-13', '2026-11-26', '2026-11-27')).toBe('2026-11-26');
   });
 });
