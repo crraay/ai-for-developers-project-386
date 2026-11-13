@@ -73,6 +73,9 @@ describe('HostPage', () => {
     expect(compiled.textContent).toContain(TIMEZONE);
     expect(compiled.textContent).toContain('30 min');
     expect(compiled.textContent).toContain('Quick chat');
+    // The wide table lives in its own scroll region so it cannot push the page
+    // beyond the viewport on a phone.
+    expect(compiled.querySelector('.table-scroll table.bookings')).not.toBeNull();
     // At least one cancel button per row.
     expect(compiled.querySelectorAll('.bookings button.danger').length).toBeGreaterThan(0);
   });

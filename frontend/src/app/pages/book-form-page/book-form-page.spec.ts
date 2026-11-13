@@ -145,6 +145,26 @@ describe('BookFormPage', () => {
     httpTesting.expectNone('http://localhost:8080/api/booking-types');
   });
 
+  it('explains an invalid email next to the field', async () => {
+    const fixture = TestBed.createComponent(BookFormPage);
+    fixture.detectChanges();
+    httpTesting.expectOne('http://localhost:8080/api/booking-types').flush(ACTIVE_TYPES);
+    fixture.detectChanges();
+
+    await fillField(fixture, 'guestEmail', 'not-an-email');
+    const input = fixture.nativeElement.querySelector(
+      'input[name="guestEmail"]',
+    ) as HTMLInputElement;
+    input.dispatchEvent(new Event('blur', { bubbles: true }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Enter a valid email address');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toBe('email-error');
+  });
+
   it('shows the problem detail when the slot is gone', async () => {
     const fixture = TestBed.createComponent(BookFormPage);
     fixture.detectChanges();

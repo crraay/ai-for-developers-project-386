@@ -1,7 +1,18 @@
+.table-scroll {
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+
+  &:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 2px;
+  }
+}
+
 .types {
   border-collapse: collapse;
   font-size: 0.95rem;
-  margin-bottom: 1.5rem;
+  min-width: 32rem;
   width: 100%;
 
   th,

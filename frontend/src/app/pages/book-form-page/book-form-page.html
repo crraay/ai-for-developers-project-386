@@ -21,7 +21,7 @@
       <p class="error" role="alert">{{ error() }}</p>
     }
 
-    <form #bookingForm="ngForm" (ngSubmit)="submit()">
+    <form #bookingForm="ngForm" (ngSubmit)="submit()" novalidate>
       <label class="field">
         <span class="field-label">Your name</span>
         <input type="text" name="guestName" [(ngModel)]="guestName" autocomplete="name" required />
@@ -31,11 +31,21 @@
         <input
           type="email"
           name="guestEmail"
+          #email="ngModel"
           [(ngModel)]="guestEmail"
           autocomplete="email"
           required
           email
+          [attr.aria-invalid]="email.invalid && (email.dirty || email.touched)"
+          [attr.aria-describedby]="
+            email.invalid && (email.dirty || email.touched) ? 'email-error' : null
+          "
         />
+        @if (email.invalid && (email.dirty || email.touched)) {
+          <span id="email-error" class="field-error">
+            Enter a valid email address, e.g. name@example.com.
+          </span>
+        }
       </label>
       <button class="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
         Confirm booking
