@@ -16,7 +16,9 @@ import java.util.List;
  * Slot generation per docs/domain.md: slot starts are aligned to the 15-minute grid, fully
  * contained in availability, at least 1 hour in the future and inside the inclusive 14-calendar-day
  * window (the last date is today + 13), and free of active bookings. The duration comes from the
- * booking type the guest picked (Issue #28).
+ * booking type the guest picked (Issue #28). The queried day itself is resolved in the caller's
+ * timezone — the guest's calendar day, not the host's (UC-2, Issue #1); availability, notice and
+ * horizon remain host-local rules on the same instants.
  */
 @Singleton
 public class SlotService {
@@ -37,14 +39,27 @@ public class SlotService {
     this.clock = clock;
   }
 
-  /** Available slot start instants (UTC) for one host-local day and a single booking type. */
+  /**
+   * Available slot start instants (UTC) for one <em>host-local</em> day and a single booking type.
+   * This is the contract when the client sends no {@code timeZone}.
+   */
   public List<Instant> slotsFor(LocalDate date, long bookingTypeId) {
+    return slotsFor(date, bookingTypeId, availabilityService.hostZone());
+  }
+
+  /**
+   * Available slot start instants (UTC) for one calendar day of {@code dayZone} (UC-2, Issue #1):
+   * the guest picks a date in their own calendar, so {@code date} spans {@code dayZone}'s midnight
+   * to midnight. Everything else stays host-local — availability and the 14-day window are the
+   * host's rules, evaluated on the same UTC instants.
+   */
+  public List<Instant> slotsFor(LocalDate date, long bookingTypeId, ZoneId dayZone) {
     BookingType type = bookingTypeService.requireActive(bookingTypeId);
     int durationMinutes = type.durationMinutes();
     ZoneId zone = availabilityService.hostZone();
     Duration duration = Duration.ofMinutes(durationMinutes);
-    Instant dayStart = date.atStartOfDay(zone).toInstant();
-    Instant dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant();
+    Instant dayStart = date.atStartOfDay(dayZone).toInstant();
+    Instant dayEnd = date.plusDays(1).atStartOfDay(dayZone).toInstant();
 
     Instant now = clock.instant();
     // The horizon bounds the start, not the whole slot (docs/domain.md: a valid
