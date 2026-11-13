@@ -73,9 +73,8 @@ For the duration `d` of the chosen booking type, a valid slot start is:
 Constants may become host settings later; that is a trivial change by design.
 
 **Seeded availability (v1):** Mon-Fri 09:00-17:00 in the host timezone
-`Europe/Berlin` (one recurring window, `02-schedule.xml`). The window start is
-the current host-local day; the window boundary is recorded in the constants
-table above.
+`Europe/Berlin` (one recurring window). The window start is the current
+host-local day; the window boundary is recorded in the constants table above.
 
 The booking horizon was narrowed from 90 rolling days to 14 calendar days
 **including today**, host-local, to match the product decision recorded in the

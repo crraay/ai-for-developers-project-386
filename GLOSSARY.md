@@ -36,6 +36,10 @@ _Avoid_: time slot, opening, vacancy
 A host-defined **shape** of booking — a title, a description and a duration — that the guest picks instead of a bare duration. One active row per offering; the duration is derived server-side from the chosen type.
 _Avoid_: meeting type, appointment type, event type
 
+**Booking window**:
+The 14 calendar days a guest can book, starting with today in the host's timezone. Today is day 1, so the last available date is today + 13; today + 14 is the first day beyond the window.
+_Avoid_: horizon, booking range, lookahead
+
 **Blackout**:
 A date or interval when the host is unavailable; suppresses availability that recurring windows would otherwise produce.
 _Avoid_: exception, day off, blocked time

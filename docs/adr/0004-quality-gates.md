@@ -3,8 +3,9 @@
 All lint/test/hygiene checks are gathered into **`mise run check`** (mise
 tasks), runnable locally and in CI as the same command ([`ci.yml`](../../.github/workflows/ci.yml)
 runs it on every push). Git hooks via **hk** add a fast pre-commit tier
-(typos, betterleaks, prettier on staged files), commitlint on commit-msg, and
-`mise run check` on pre-push. The tool selection follows
+(typos, betterleaks, prettier on staged files) and commitlint on commit-msg.
+There is no pre-push hook: `mise run check` is run explicitly (CI runs it on
+every push). The tool selection follows
 [dev-quality-gates](https://github.com/mokevnin/dev-quality-gates): backend =
 Spotless + Error Prone + NullAway (all failing the build), frontend =
 angular-eslint + prettier + stylelint, cross-cutting = typos, betterleaks,

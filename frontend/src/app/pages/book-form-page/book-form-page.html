@@ -26,9 +26,12 @@
         <span class="field-label">Your name</span>
         <input type="text" name="guestName" [(ngModel)]="guestName" autocomplete="name" required />
       </label>
-      <label class="field">
-        <span class="field-label">Your email</span>
+      <!-- The error sits outside the <label> so it is not folded into the
+           input's accessible name; aria-describedby still associates it. -->
+      <div class="field">
+        <label class="field-label" for="guest-email">Your email</label>
         <input
+          id="guest-email"
           type="email"
           name="guestEmail"
           #email="ngModel"
@@ -46,7 +49,7 @@
             Enter a valid email address, e.g. name@example.com.
           </span>
         }
-      </label>
+      </div>
       <button class="primary" type="submit" [disabled]="bookingForm.invalid || submitting()">
         Confirm booking
       </button>
