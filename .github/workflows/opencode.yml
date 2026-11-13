@@ -48,6 +48,15 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # opencode.json reads the Render MCP token from .render-api-key, a
+      # gitignored local secret. The config is rejected while that file is
+      # missing, which is the case on a fresh runner, so create an empty
+      # placeholder: the agent has no Render key, does not use the server, and
+      # a failed MCP connection does not stop a run (checked against the
+      # opencode 1.19.5 binary the action installs).
+      - name: Provide the local config's secret file placeholder
+        run: touch .render-api-key
+
       # The App token from the OIDC exchange carries contents/issues/
       # pull-requests write; this workflow's GITHUB_TOKEN stays read-only, and
       # the action refuses actors without admin or write access to the repo.
