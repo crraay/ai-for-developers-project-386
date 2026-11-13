@@ -40,13 +40,13 @@ run = "./gradlew spotlessCheck test"
 run_windows = "gradlew.bat spotlessCheck test"
 
 [tasks."check:frontend"]
-description = "eslint (TS + templates), prettier, stylelint, Vitest, production build"
+description = "eslint, prettier, stylelint, Vitest, type-check + production build"
 dir = "frontend"
 run = [
   "npm run lint",
   "npm run format:check",
   "npm run lint:scss",
-  "npm test -- --watch=false",
+  "npm test -- --run",
   "npm run build",
 ]
 
@@ -82,12 +82,12 @@ depends = ["check:backend", "check:frontend", "check:contracts", "check:repo", "
 run = "mise run check:generated"
 
 [tasks."check:generated"]
-description = "Fail if committed generated files (openapi/api.yml, frontend/src/app/api) are stale or missing"
+description = "Fail if committed generated files (openapi/api.yml, frontend/src/api) are stale or missing"
 depends = ["generate"]
 # Stage generated paths (including previously untracked files) before diffing
 # against HEAD. A freshly generated client that was never `git add`ed must fail
 # the freshness gate just like a modified one.
-run = "git add -A -- openapi frontend/src/app/api && git diff --cached --exit-code -- openapi frontend/src/app/api"
+run = "git add -A -- openapi frontend/src/api && git diff --cached --exit-code -- openapi frontend/src/api"
 
 # ---------------------------------------------------------------------------
 # Generation
@@ -99,7 +99,7 @@ dir = "typespec"
 run = "npm run compile"
 
 [tasks."generate:client"]
-description = "Regenerate the Angular client from openapi/api.yml"
+description = "Regenerate the React client from openapi/api.yml"
 dir = "frontend"
 depends = ["generate:spec"]
 run = "npm run generate:api"
@@ -136,5 +136,5 @@ description = "Build the compose stack, verify backend + frontend + Swagger UI, 
 # so both variants chain with &&.
 # On assertion failure the stack is left running for inspection (CI has its own
 # inline smoke steps with `if: always()` teardown).
-run = """trap 'docker compose down -v' EXIT; docker compose up --build -d && body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping) && test "$body" = "pong" && curl -fsS http://localhost:4200 | grep -q "<app-root>" && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3" && curl -fsS http://localhost:8080/swagger-ui/ | grep -qi swagger-ui && bash scripts/smoke-booking.sh"""
-run_windows = """docker compose up --build -d && curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul && curl -fsS http://localhost:4200 | findstr /c:"<app-root>" >nul && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul && curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-booking.ps1 && docker compose down -v"""
+run = """trap 'docker compose down -v' EXIT; docker compose up --build -d && body=$(curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping) && test "$body" = "pong" && curl -fsS http://localhost:4200 | grep -q 'id="root"' && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | grep -q "openapi: 3" && curl -fsS http://localhost:8080/swagger-ui/ | grep -qi swagger-ui && bash scripts/smoke-booking.sh"""
+run_windows = """docker compose up --build -d && curl --retry 12 --retry-delay 5 --retry-all-errors -fsS http://localhost:8080/api/ping | findstr /c:"pong" >nul && curl -fsS http://localhost:4200 | findstr /r /c:"id=.root." >nul && curl -fsS http://localhost:8080/swagger/call-calendar-0.1.yml | findstr /c:"openapi: 3" >nul && curl -fsS http://localhost:8080/swagger-ui/ | findstr /i /c:"swagger-ui" >nul && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-booking.ps1 && docker compose down -v"""

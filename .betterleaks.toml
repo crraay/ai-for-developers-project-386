@@ -12,10 +12,9 @@ paths = [
   # scanning them races check:backend
   '''backend/\.gradle/''',
   '''frontend/dist/''',
-  '''frontend/\.angular/''',
   '''node_modules/''',
   # generated and committed; changes only ever come from the generators
-  '''frontend/src/app/api/''',
+  '''frontend/src/api/''',
   '''openapi/api\.yml''',
   # lockfiles
   '''package-lock\.json''',

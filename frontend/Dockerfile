@@ -7,11 +7,13 @@ COPY package.json package-lock.json ./
 # `npm ci` reads from and writes to `/root/.npm`; mounting it as a cache
 # avoids re-downloading the same lockfile-resolved tree on every CI run.
 RUN --mount=type=cache,target=/root/.npm npm ci
-ARG CONFIGURATION=production
+# Vite mode picks the API URL: development -> .env.development
+# (http://localhost:8080), production -> .env.production (see ADR-0009).
+ARG MODE=production
 COPY . .
-RUN npm run build -- --configuration=${CONFIGURATION}
+RUN npm run build -- --mode=${MODE}
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

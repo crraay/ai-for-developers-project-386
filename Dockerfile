@@ -11,7 +11,7 @@ COPY backend/ .
 RUN --mount=type=cache,target=/root/.gradle \
     chmod +x gradlew && ./gradlew shadowJar --no-daemon
 
-# --- Stage 2: Angular production build ---------------------------------------
+# --- Stage 2: React production build -----------------------------------------
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=backend-build /app/build/libs/*-all.jar app.jar
-COPY --from=frontend-build /app/dist/frontend/browser /usr/share/nginx/html
+COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/entrypoint.sh /docker-entrypoint.sh
