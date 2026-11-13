@@ -16,7 +16,9 @@ The agent shell is PowerShell: use `curl.exe` for real curl flags (`curl` aliase
 
 The agent shell reports a spurious "exit code 1" whenever a command writes to stderr (docker, gradle, npm, hk all do) — trust command output and explicit markers (e.g. `BUILD SUCCESSFUL`), never the wrapper's exit code.
 
-`mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness) and must pass before a change is done; CI runs the same command on every push. There is no pre-push hook — run it yourself. `mise run fix` applies the safe autofixes.
+One-time per clone (after `mise install`): `mise run setup` installs the root, frontend and TypeSpec JS dependencies plus the Playwright Chromium. Docker must be running for the browser test. CI and the deploy workflow run the same setup task.
+
+`mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness, browser test) and must pass before a change is done; CI runs the same command on every push. There is no pre-push hook — run it yourself. `mise run fix` applies the safe autofixes.
 
 Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. The contract source is `typespec/main.tsp` (ADR-0008): change it, run `mise run generate` (TypeSpec → `openapi/api.yml` → Angular client), and commit the regenerated output; CI fails on stale output.
 
@@ -34,7 +36,7 @@ docker compose up --build
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
 - PostgreSQL: localhost:5434
 
-For local development without Docker, use the `mise`-wrapped commands already described in `README.md`:
+For local development without Docker, use the `mise`-wrapped commands already described in `README.md` (run `mise run setup` once first so `frontend/node_modules` exists):
 
 ```bash
 # backend (requires a PostgreSQL, e.g. `docker compose up -d db`)

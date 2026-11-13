@@ -28,14 +28,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
 
-      - name: Install JS dependencies (root = tooling + typespec, frontend = app)
-        run: |
-          npm ci
-          npm --prefix frontend ci
-          npm --prefix typespec ci
-
-      - name: Install Playwright browser
-        run: npx playwright install chromium
+      - name: One-time setup (same command as a local clone)
+        run: mise run setup
 
       # The same gate CI runs on every push — nothing deploys that check hasn't passed.
       - name: mise run check

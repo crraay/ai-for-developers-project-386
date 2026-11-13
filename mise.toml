@@ -16,6 +16,20 @@ osv-scanner = "2.7.0"
 _.path = ["node_modules/.bin", "frontend/node_modules/.bin"]
 
 # ---------------------------------------------------------------------------
+# Setup. One command for a clean clone; CI and the deploy workflow run the same
+# task, so the local and remote prerequisites cannot drift.
+# ---------------------------------------------------------------------------
+
+[tasks.setup]
+description = "One-time per clone: install root, frontend and TypeSpec JS dependencies plus the Playwright browser"
+run = [
+  "npm ci",
+  "npm --prefix frontend ci",
+  "npm --prefix typespec ci",
+  "npx playwright install chromium",
+]
+
+# ---------------------------------------------------------------------------
 # Checks. `mise run check` runs everything; CI runs exactly this command.
 # ---------------------------------------------------------------------------
 

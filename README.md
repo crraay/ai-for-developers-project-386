@@ -26,7 +26,14 @@ Windows) and Docker. Tool versions (Java 25, Node 24) are pinned in
 git clone https://github.com/crraay/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
 mise install
+mise run setup
 ```
+
+`mise run setup` installs the three JavaScript dependency trees (root = e2e +
+commitlint, `frontend/` = the app, `typespec/` = the contract compiler) and the
+Playwright Chromium browser. It is the same one-time setup CI and the deploy
+workflow run, so a clean clone can go straight to `mise run check`. Docker must
+be running for the browser test (and for `mise run smoke`).
 
 
 
@@ -90,6 +97,19 @@ Hiding a type (uncheck *Visible* in the editor) takes it off the guest picker
 without deleting past bookings; deleting it is irreversible but the type label
 stays attached to existing rows.
 
+### Booking window
+
+The guest calendar opens on the current host-local day and covers the **14
+calendar days including today**: if today is 1 November, the last available date
+is 14 November. The server and the calendar use the same rule
+(`BookingRules.HORIZON_DAYS` served through `GET /api/host-settings`), and a
+booking outside the window is rejected with a 409.
+
+Seeded availability is **Mon-Fri 09:00-17:00** in the host timezone
+`Europe/Berlin`; a slot lasts as long as the chosen booking type. Both values are
+recorded in [`typespec/main.tsp`](typespec/main.tsp) and
+[`docs/domain.md`](docs/domain.md).
+
 
 
 ## Deployment
@@ -141,7 +161,9 @@ Free-tier caveats:
 
 Tests are run automatically by Hexlet on every commit via the [`hexlet-check`](.github/workflows/hexlet-check.yml) GitHub Actions workflow. This repo's own [`ci.yml`](.github/workflows/ci.yml) additionally runs the full quality gate on every push.
 
-The one command that runs everything (all linters, all tests, the OpenAPI spec lint, repo hygiene checks, and the generated-code freshness gate):
+The one command that runs everything (all linters, all unit and browser tests,
+the OpenAPI spec lint, repo hygiene checks, and the generated-code freshness
+gate). It needs Docker for the browser test:
 
 ```bash
 mise run check
@@ -155,12 +177,15 @@ mise run generate   # regenerate openapi/api.yml + the frontend API client
 mise run smoke      # docker compose stack end-to-end check (needs Docker)
 ```
 
-Git hooks (fast pre-commit tier + commit-msg lint + pre-push `mise run check`)
-are managed by hk; once per clone:
+Git hooks (fast pre-commit tier + commit-msg lint) are managed by hk; once per
+clone:
 
 ```bash
 hk install --mise
 ```
+
+There is deliberately **no pre-push hook**: run `mise run check` yourself before
+calling a change done. CI runs the same command on every push.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org)
 (enforced by commitlint in the commit-msg hook and in CI).
