@@ -60,6 +60,12 @@ For the duration `d` of the chosen booking type, a valid slot start is:
 - Window times are interpreted in the host's configured timezone.
 - The guest UI renders times in the guest's browser-local timezone, clearly
   labeled.
+- The day a guest picks is the **guest's** calendar day: `GET /api/slots`
+  resolves `date` in the browser's IANA zone (`timeZone` query parameter,
+  issue #1). Availability, the 1-hour notice and the 14-day window stay
+  host-local rules evaluated on the same instants, so UI and server keep one
+  window rule. Booking needs no zone: `start` is an absolute instant, exactly
+  the moment the guest was offered.
 
 ## Constants (v1)
 
