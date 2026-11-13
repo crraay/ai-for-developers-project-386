@@ -37,7 +37,8 @@ export class BookPage {
       next: ({ settings, types }) => {
         const hostZone = settings.timezone;
         const today = dateInTimeZone(hostZone);
-        const horizonDate = addDaysToDateString(today, settings.bookingHorizonDays, hostZone);
+        // bookingHorizonDays counts today, so the last selectable date is today + (days - 1).
+        const horizonDate = addDaysToDateString(today, settings.bookingHorizonDays - 1, hostZone);
         this.minDate.set(today);
         this.maxDate.set(horizonDate);
         this.date.set(today);

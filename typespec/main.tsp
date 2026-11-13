@@ -70,9 +70,12 @@ model HostBookingResponse {
   bookingTypeId: int64;
 }
 
-@doc("Public host settings the guest UI needs: timezone and the number of calendar days a guest can book ahead. Allowed durations now live in booking_type.")
+@doc("Public host settings the guest UI needs: the host timezone and the inclusive booking window. The window opens on the current host-local day and `bookingHorizonDays` includes today (14 means the last bookable date is today + 13). Seeded availability is Mon-Fri 09:00-17:00 host-local (`Europe/Berlin`); allowed durations live in booking_type.")
 model HostSettingsResponse {
+  @doc("IANA timezone the host's availability is defined in (seeded: Europe/Berlin).")
   timezone: string;
+
+  @doc("Number of calendar days the guest may book ahead, including today (seeded: 14).")
   bookingHorizonDays: int32;
 }
 
@@ -349,7 +352,7 @@ interface HostBookings {
 @tag("host-settings")
 @route("/api/host-settings")
 interface HostSettings {
-  @summary("Public host settings: timezone and booking horizon")
+  @summary("Public host settings: timezone and inclusive booking window")
   @operationId("getHostSettings")
   @get
   getHostSettings(): GetHostSettingsResponse;

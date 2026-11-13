@@ -139,7 +139,7 @@ paths:
   /api/host-settings:
     get:
       operationId: getHostSettings
-      summary: 'Public host settings: timezone and booking horizon'
+      summary: 'Public host settings: timezone and inclusive booking window'
       parameters: []
       responses:
         '200':
@@ -455,10 +455,12 @@ components:
       properties:
         timezone:
           type: string
+          description: "IANA timezone the host's availability is defined in (seeded: Europe/Berlin)."
         bookingHorizonDays:
           type: integer
           format: int32
-      description: 'Public host settings the guest UI needs: timezone and the number of calendar days a guest can book ahead. Allowed durations now live in booking_type.'
+          description: 'Number of calendar days the guest may book ahead, including today (seeded: 14).'
+      description: 'Public host settings the guest UI needs: the host timezone and the inclusive booking window. The window opens on the current host-local day and `bookingHorizonDays` includes today (14 means the last bookable date is today + 13). Seeded availability is Mon-Fri 09:00-17:00 host-local (`Europe/Berlin`); allowed durations live in booking_type.'
     ProblemDetail:
       type: object
       required:

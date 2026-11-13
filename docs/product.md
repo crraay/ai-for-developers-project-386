@@ -30,7 +30,9 @@ recurring windows (weekly, via rrule), one-off windows, and blackouts.
 ### UC-2: Guest browses available slots
 
 The guest picks a day and a booking type, and sees the available start times,
-rendered in their own browser timezone, clearly labeled.
+rendered in their own browser timezone, clearly labeled. The booking window is
+the 14 calendar days starting with today (host-local); the last available date
+is today + 13. Seeded availability is Mon-Fri 09:00-17:00 in `Europe/Berlin`.
 
 ### UC-3: Guest books a slot
 

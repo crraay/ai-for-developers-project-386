@@ -105,14 +105,14 @@ describe('BookPage', () => {
     expect(compiled.textContent).toContain('Could not load slots');
   });
 
-  it('sets the calendar min and max to today and today + bookingHorizonDays in the host timezone', () => {
+  it('sets the calendar min and max to today and today + bookingHorizonDays - 1 in the host timezone', () => {
     const fixture = TestBed.createComponent(BookPage);
     fixture.detectChanges();
 
     const expectedMin = dateInTimeZone(hostSettings.timezone);
     const expectedMax = addDaysToDateString(
       expectedMin,
-      hostSettings.bookingHorizonDays,
+      hostSettings.bookingHorizonDays - 1,
       hostSettings.timezone,
     );
 

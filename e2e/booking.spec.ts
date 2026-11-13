@@ -73,8 +73,8 @@ function firstWeekdayAfter(dateString: string): string {
 
 /**
  * Returns a future weekday (Mon-Fri) at least `minDays` out, formatted as
- * yyyy-mm-dd in the given IANA timezone. The booking horizon is 14 days, so
- * staying well inside it keeps the slot bookable.
+ * yyyy-mm-dd in the given IANA timezone. The booking window is 14 calendar days
+ * including today, so staying well inside it keeps the slot bookable.
  */
 function futureWeekdayDate(timeZone: string, minDays = 2): string {
   let candidate = addDays(new Date(), minDays);
@@ -206,12 +206,15 @@ test('the booking window is exactly the first 14 calendar days', async ({ page }
   const typeId = types[0].id;
 
   const today = formatDateInTimeZone(new Date(), hostTimeZone);
-  const lastDay = addDaysToDateString(today, bookingHorizonDays);
+  // The window is 14 calendar days including today: the last selectable date is
+  // today + 13, i.e. bookingHorizonDays - 1 days ahead (issue #29, review
+  // follow-up: today is day 1).
+  const lastDay = addDaysToDateString(today, bookingHorizonDays - 1);
   const lastWeekday = lastWeekdayOnOrBefore(lastDay);
   const firstDayBeyond = firstWeekdayAfter(lastDay);
 
-  // The first day of the window is today and the last is exactly 14 calendar
-  // days ahead — the picker must offer no more (issue #29).
+  // The first day of the window is today and the last is the 14th calendar
+  // day — the picker must offer no more (issue #29).
   await page.goto('/book');
   const dayInput = page.getByLabel('Day');
   await expect(dayInput).toHaveAttribute('min', today);

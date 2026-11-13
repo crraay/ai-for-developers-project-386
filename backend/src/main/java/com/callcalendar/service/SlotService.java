@@ -14,8 +14,9 @@ import java.util.List;
 
 /**
  * Slot generation per docs/domain.md: slot starts are aligned to the 15-minute grid, fully
- * contained in availability, at least 1 hour and at most 14 days in the future, and free of active
- * bookings. The duration comes from the booking type the guest picked (Issue #28).
+ * contained in availability, at least 1 hour in the future and inside the inclusive 14-calendar-day
+ * window (the last date is today + 13), and free of active bookings. The duration comes from the
+ * booking type the guest picked (Issue #28).
  */
 @Singleton
 public class SlotService {
@@ -46,9 +47,9 @@ public class SlotService {
     Instant dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant();
 
     Instant now = clock.instant();
-    // The horizon bounds the start, not the whole slot (docs/domain.md: "a valid
-    // slot start is ... at most 14 days in the future"). BookingService accepts
-    // the same starts, so browse must offer them too.
+    // The horizon bounds the start, not the whole slot (docs/domain.md: a valid
+    // slot start lies inside the inclusive 14-calendar-day window). BookingService
+    // accepts the same starts, so browse must offer them too.
     Instant horizon = BookingRules.horizonEnd(zone, now);
     Instant from = max(dayStart, BookingRules.alignUp(now.plus(BookingRules.MIN_NOTICE)));
     if (!from.isBefore(dayEnd) || !from.isBefore(horizon)) {
