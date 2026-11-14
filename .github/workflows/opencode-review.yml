@@ -1,0 +1,147 @@
+name: opencode-review
+
+# Every non-draft pull request from a branch in this repository is reviewed by
+# the OpenCode agent when it is opened, pushed to, reopened or made ready. The
+# review is advisory: it is not a required check and a failed run never fails
+# the pull request.
+#
+# The action at this SHA supports the `pull_request` event and posts the review
+# itself, as a new comment on each run (`gh pr diff`/`gh pr view` are all the
+# agent needs to read the change). Two of its gaps shape this file:
+#
+#   - Its documented `agent` input is never read by the CLI it installs
+#     (packages/opencode/src/cli/cmd/github.ts at 77fc88c8), so a run falls back
+#     to `build`, which may edit files. The action then commits and pushes a
+#     dirty worktree onto the PR branch. Read-only-ness therefore comes from
+#     OPENCODE_PERMISSION below: `edit` is denied, so the tree cannot go dirty,
+#     and `bash` is a read-only whitelist. `agent:` is omitted rather than set
+#     to a value that is silently ignored.
+#   - It exports no GitHub token to the agent, so `gh` would be unauthenticated
+#     inside the run. GH_TOKEN is handed to the step for reads only; the review
+#     comment is posted through the OIDC App token, exactly as in opencode.yml,
+#     so this workflow's own GITHUB_TOKEN stays read-only.
+#
+# The SHA pin freezes the wrapper, not the tool: action.yml resolves
+# `releases/latest` and runs `opencode.ai/install` each time the cache misses.
+# Upstream has since deleted `github/` (1743d1a), so the migration of both
+# workflows to the CLI is tracked in #54. A review that posts a new comment on
+# every push is #55.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Deny every token permission by default; the job asks for the reads it needs.
+permissions: {}
+
+# One review per pull request: a push cancels the review of the superseded head.
+# Nothing is left behind by a cancelled run, because the comment is posted at
+# the end, and a review of the old head is worth discarding.
+concurrency:
+  group: opencode-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Drafts are skipped until they are ready for review. Forks are skipped:
+    # they get a read-only token and no secrets, so the run could not reach the
+    # model at all. Bot PRs are skipped because their bodies are generated on a
+    # schedule rather than written as a change to review.
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.event.pull_request.head.ref, 'release-please--') &&
+      (github.event.pull_request.user.login == github.repository_owner ||
+       github.event.pull_request.user.login == 'opencode-agent[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # the PR head
+      id-token: write # OIDC exchange for the App token that posts the review
+      pull-requests: read # gh pr view / gh pr diff
+      issues: read # gh issue view for the linked ticket; PR comments are issues
+      checks: read # gh pr checks
+      statuses: read # commit statuses behind gh pr checks
+      actions: read # gh run view for the workflow behind a failing check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: the agent may diff against the merge base instead of
+          # asking gh for the patch, and the base branch has to be present.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # opencode.json reads the Render MCP token from .render-api-key, a
+      # gitignored local secret. The config is rejected while that file is
+      # missing, which is the case on a fresh runner, so create an empty
+      # placeholder: the agent has no Render key, does not use the server, and
+      # a failed MCP connection does not stop a run.
+      - name: Provide the local config's secret file placeholder
+        run: touch .render-api-key
+
+      - name: Review with OpenCode
+        uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # latest, 2026-11-13
+        with:
+          model: opencode-go/deepseek-v4.1-flash
+          prompt: |
+            Review pull request #${{ github.event.pull_request.number }} in
+            ${{ github.repository }} and return the review as Markdown.
+
+            Read AGENTS.md, CODING_STANDARDS.md and docs/agents/review.md
+            before anything else. docs/agents/review.md is the contract: it
+            defines the two axes, the evidence each finding needs, what to do
+            with earlier review threads, and how to finish. Follow it.
+
+            The pull request number is exported as $PR. Read the request with
+            `gh pr view $PR --json number,title,body,baseRefName,headRefName,commits,files`,
+            the patch with `gh pr diff $PR`, the earlier conversation with
+            `gh pr view $PR --comments`, each linked ticket with
+            `gh issue view <n>`, and CI evidence with `gh pr checks $PR` and
+            `gh run view <id>`.
+
+            Shell access is limited to those read commands, and tools cannot
+            edit, commit, push, approve, request changes or comment. Report;
+            do not act.
+
+            Never return an empty answer: a run with no text fails the job.
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          # Read-only token for the whitelisted `gh` calls. Naming it GH_TOKEN
+          # keeps the action's own OIDC path untouched: it reads GITHUB_TOKEN,
+          # and only when use_github_token is true.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          # `ask` cannot be answered on a runner: the tool call blocks until the
+          # job timeout (#52). Everything the review needs is allowed; the rest
+          # is denied, not asked. In the V1 `permission` object a rule is either
+          # an action or a command map, and the last matching key wins, so the
+          # wildcard comes first and the guard below comes last. `edit` is denied
+          # to keep the worktree clean — a dirty tree would be committed and
+          # pushed by the action — and the web is denied because the review reads
+          # the PR, not links pasted into it.
+          OPENCODE_PERMISSION: |
+            {
+              "edit": "deny",
+              "external_directory": "deny",
+              "question": "deny",
+              "task": "deny",
+              "todowrite": "deny",
+              "webfetch": "deny",
+              "websearch": "deny",
+              "bash": {
+                "*": "deny",
+                "git status": "allow",
+                "git status *": "allow",
+                "git log *": "allow",
+                "git show *": "allow",
+                "git diff *": "allow",
+                "git merge-base *": "allow",
+                "git rev-parse *": "allow",
+                "gh pr view *": "allow",
+                "gh pr diff *": "allow",
+                "gh pr checks *": "allow",
+                "gh issue view *": "allow",
+                "gh run view *": "allow",
+                "*--output*": "deny"
+              }
+            }
