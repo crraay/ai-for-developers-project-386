@@ -20,7 +20,9 @@ One-time per clone (after `mise install`): `mise run setup` installs the root, f
 
 `mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness, browser test) and must pass before a change is done; CI runs the same command on every push. There is no pre-push hook — run it yourself. `mise run fix` applies the safe autofixes.
 
-Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. The contract source is `typespec/main.tsp` (ADR-0008): change it, run `mise run generate` (TypeSpec → `openapi/api.yml` → Angular client), and commit the regenerated output; CI fails on stale output.
+Stop a manually started `docker compose up` before running the gate: the backend tests boot a real Micronaut server on **8080**, so a running Compose backend makes every backend test fail with `Address already in use` (the browser test starts and tears down its own stack).
+
+Generated files — `openapi/api.yml` and `frontend/src/api/` — are never edited by hand. The contract source is `typespec/main.tsp` (ADR-0008): change it, run `mise run generate` (TypeSpec → `openapi/api.yml` → React client), and commit the regenerated output; CI fails on stale output.
 
 Lint rules are never disabled to get a change through. Exceptions are narrow (one path, one rule), carry a written reason, and need a human decision.
 
@@ -32,7 +34,7 @@ The fastest way to run the full stack from a clean clone is Docker Compose:
 docker compose up --build
 ```
 
-- Frontend: http://localhost:4200
+- Frontend: http://localhost:5173
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
 - PostgreSQL: localhost:5434
 

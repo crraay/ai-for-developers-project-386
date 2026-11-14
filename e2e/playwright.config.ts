@@ -9,7 +9,7 @@ export default defineConfig({
   globalSetup: require.resolve('./global-setup.mjs'),
   globalTeardown: require.resolve('./global-teardown.mjs'),
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
   },
   projects: [

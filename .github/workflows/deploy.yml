@@ -93,8 +93,8 @@ jobs:
           fi
 
           index_body=$(curl -fsS --retry 12 --retry-delay 5 --retry-all-errors "${STATIC_SITE_URL}/")
-          if [[ "${index_body}" != *"<app-root>"* ]]; then
-            echo "::error::static site did not serve the Angular index"
+          if [[ "${index_body}" != *'id="root"'* ]]; then
+            echo "::error::static site did not serve the app shell"
             exit 1
           fi
 

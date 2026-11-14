@@ -28,9 +28,15 @@ for the API contract.
 ## Decision
 
 The TypeSpec project in `typespec/` is now the **authoritative contract source**.
-`npm run compile` (TypeSpec) emits `openapi/api.yml`, and `ng-openapi-gen`
-continues to generate the Angular client from that file. `mise run generate` now
-runs `generate:spec` (TypeSpec) then `generate:client` (`ng-openapi-gen`).
+`npm run compile` (TypeSpec) emits `openapi/api.yml`, and a generated client is
+produced from that file. `mise run generate` now runs `generate:spec` (TypeSpec)
+then `generate:client`.
+
+> **Generator note (ADR-0009).** `generate:client` now runs
+> `@hey-api/openapi-ts`, which writes the SDK, types and TanStack Query options
+> into `frontend/src/api/`. The decision below is unchanged; only the tool that
+> turns `openapi/api.yml` into a committed client changed when the frontend moved
+> to React.
 
 ### Why TypeSpec
 
@@ -38,8 +44,8 @@ runs `generate:spec` (TypeSpec) then `generate:client` (`ng-openapi-gen`).
   contract changes.
 - It keeps paths, methods, status codes, content types, and schemas in one
   place.
-- It still produces OpenAPI 3, so the existing tooling (`vacuum`,
-  `ng-openapi-gen`) continues to work unchanged.
+- It still produces OpenAPI 3, so the existing tooling (`vacuum`, and the client
+  generator) continues to work unchanged.
 
 ### Backend annotations
 
@@ -53,7 +59,7 @@ are not the source of truth and are not used to regenerate `openapi/api.yml`.
 ### Drift detection
 
 `mise run check:generated` regenerates `openapi/api.yml` and
-`frontend/src/app/api/` and fails if the committed versions differ from the
+`frontend/src/api/` and fails if the committed versions differ from the
 freshly generated ones. The gate now stages untracked files before diffing, so a
 newly generated client that was never `git add`ed is caught just like a modified
 one.

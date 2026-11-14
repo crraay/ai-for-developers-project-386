@@ -1,6 +1,8 @@
 # Tech stack: Angular + Micronaut + PostgreSQL + Docker Compose
 
-> **Status: Accepted.**
+> **Status: Accepted, superseded in part by ADR-0009.** The *frontend* half of this
+> decision (Angular) was replaced by React + Vite in ADR-0009; the backend,
+> database, Compose and learning-stack reasoning below still hold.
 
 Call Calendar is built as a monorepo with an Angular SPA (`/frontend`), a
 Java 25 + Micronaut REST API (`/backend`, Gradle), and PostgreSQL, wired
@@ -17,7 +19,7 @@ multi-service stack, and Compose makes the extra infrastructure cost near zero.
 
 ## Consequences
 
-- Every change runs through two build systems (Gradle, Angular CLI) and
+- Every change runs through two build systems (Gradle, Vite) and
   `docker compose up` is the canonical way to run the app.
 - PostgreSQL (not SQLite) is the database from day one; there is no
   "embedded DB for dev" path.
