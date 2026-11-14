@@ -68,8 +68,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Full history: the agent may diff against the merge base instead of
-          # asking gh for the patch, and the base branch has to be present.
+          # Full history: the whitelisted `git log`, `git show` and
+          # `git merge-base` need it, and the base branch has to be present.
+          # The patch itself comes from `gh pr diff`; `git diff` stays off the
+          # whitelist (see the permission block below).
           fetch-depth: 0
           persist-credentials: false
 
@@ -78,8 +80,15 @@ jobs:
       # missing, which is the case on a fresh runner, so create an empty
       # placeholder: the agent has no Render key, does not use the server, and
       # a failed MCP connection does not stop a run.
+      #
+      # The placeholder is kept out of git locally, whatever the reviewed PR
+      # does to .gitignore: the action commits and pushes a dirty worktree, so a
+      # PR that unignores the file must not be able to turn this step into a
+      # commit on its own branch.
       - name: Provide the local config's secret file placeholder
-        run: touch .render-api-key
+        run: |
+          echo '.render-api-key' >> .git/info/exclude
+          touch .render-api-key
 
       - name: Review with OpenCode
         uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # latest, 2026-11-13
