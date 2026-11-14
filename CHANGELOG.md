@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.0](https://github.com/crraay/ai-for-developers-project-386/compare/v0.2.0...v0.3.0) (2026-11-13)
+
+
+### Features
+
+* **backend:** derive booking duration from a chosen booking type ([23c1fae](https://github.com/crraay/ai-for-developers-project-386/commit/23c1fae096389946eb6522546f1e09f8b6bea81a))
+* **backend:** resolve the picked slot day in the guest's timezone ([06b2273](https://github.com/crraay/ai-for-developers-project-386/commit/06b2273832a517e19cdcd16d93ca68c638364921)), closes [#1](https://github.com/crraay/ai-for-developers-project-386/issues/1)
+* deploy to Render through a manual GitHub workflow ([1731949](https://github.com/crraay/ai-for-developers-project-386/commit/1731949975cf0bf2a7d98306cea283cf8c0d7715))
+* **frontend:** host can manage booking types and guest picks one ([cb61b46](https://github.com/crraay/ai-for-developers-project-386/commit/cb61b465ed5a54286dc7ad5fecfedcd1db5d54f5))
+* **frontend:** keep host tables scrollable and explain invalid emails ([173e2e1](https://github.com/crraay/ai-for-developers-project-386/commit/173e2e168af79ea614f6889ed8f1a3cde03725ca))
+* **frontend:** send the browser timezone and open on the guest's today ([e5781b3](https://github.com/crraay/ai-for-developers-project-386/commit/e5781b3be0582697a0ff1a2df66889442ba3ed0a)), closes [#1](https://github.com/crraay/ai-for-developers-project-386/issues/1)
+* make the 14-day booking window include today ([44a9de3](https://github.com/crraay/ai-for-developers-project-386/commit/44a9de3ec60c28a69fc47f6514164a60d4390382))
+* narrow the booking horizon from 90 days to 14 days ([b8da138](https://github.com/crraay/ai-for-developers-project-386/commit/b8da138763f627643661f3e6dd4cbff449025c51))
+* one 14-calendar-day booking window across UI and server ([4499a18](https://github.com/crraay/ai-for-developers-project-386/commit/4499a189465595938400a3ac402f706ab539422d)), closes [#29](https://github.com/crraay/ai-for-developers-project-386/issues/29)
+* serve frontend and backend from a root image on $PORT ([23537d8](https://github.com/crraay/ai-for-developers-project-386/commit/23537d8883f33e4a13606285fbf23ce77361e684))
+* typespec contract source, 201 assertion, browser test ([1150819](https://github.com/crraay/ai-for-developers-project-386/commit/1150819cdb79c8aeb7a920deb543dcf711c06875))
+* widen allowed durations to 15/30/60 and test partial overlaps ([53f5ed8](https://github.com/crraay/ai-for-developers-project-386/commit/53f5ed82ae0dc87a7cb4aff5a00cd2d10ab8aec9))
+
+
+### Bug Fixes
+
+* address the follow-up review findings ([ba026aa](https://github.com/crraay/ai-for-developers-project-386/commit/ba026aabfb7dc980119ab66ba04ef83c84fb6d5f))
+* address the two-axis review findings ([dc94ada](https://github.com/crraay/ai-for-developers-project-386/commit/dc94ada1e899915684f85bbb7de67875c56c6b11)), closes [#1](https://github.com/crraay/ai-for-developers-project-386/issues/1) [#38](https://github.com/crraay/ai-for-developers-project-386/issues/38)
+* **backend:** reject partially overlapping bookings in the database ([435efb2](https://github.com/crraay/ai-for-developers-project-386/commit/435efb26c38b27e082e2ce644f1d2b504a426e09)), closes [#31](https://github.com/crraay/ai-for-developers-project-386/issues/31)
+* **backend:** validate type duration against the 5-240 range ([5b78b98](https://github.com/crraay/ai-for-developers-project-386/commit/5b78b986f8e0fccfe5a0090d50ce9aa2a2d1ed15)), closes [#28](https://github.com/crraay/ai-for-developers-project-386/issues/28)
+* **frontend:** refuse to submit a booking without a chosen type ([84a93d2](https://github.com/crraay/ai-for-developers-project-386/commit/84a93d2cf5a26206fc3d8c51e443912bb2eb32bd)), closes [#28](https://github.com/crraay/ai-for-developers-project-386/issues/28)
+* id-specific 404 description and robust e2e teardown ([783f28d](https://github.com/crraay/ai-for-developers-project-386/commit/783f28d5f9498d49d7ab73f7336b36bee20a9c8c)), closes [#32](https://github.com/crraay/ai-for-developers-project-386/issues/32)
+* **smoke:** book by bookingTypeId instead of the retired durationMinutes ([2f413f8](https://github.com/crraay/ai-for-developers-project-386/commit/2f413f8578f3602bf64c8c0369e6c2954cbbc9d7)), closes [#28](https://github.com/crraay/ai-for-developers-project-386/issues/28)
+* **smoke:** clarify cache-mount mode in backend Dockerfile ([7817630](https://github.com/crraay/ai-for-developers-project-386/commit/781763003d548e832d750d252cb6bf102594a074))
+* **smoke:** persist gradle cache across CI runs ([5bb7e8e](https://github.com/crraay/ai-for-developers-project-386/commit/5bb7e8ea3f2919d86001bd976460831426f25bf5))
+* **smoke:** persist gradle cache across CI runs ([fc50944](https://github.com/crraay/ai-for-developers-project-386/commit/fc509443e851345c2bed5def321babe365fd967e))
+
 ## [0.2.0](https://github.com/crraay/ai-for-developers-project-386/compare/v0.1.0...v0.2.0) (2026-11-08)
 
 
