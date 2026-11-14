@@ -104,6 +104,25 @@ class BookingTypeFlowTest {
   }
 
   @Test
+  void deletingATypeUsedByABookingHidesItInstead() {
+    BookingTypeResponse created = createType("Referenced type", null, 30);
+    Instant slot = firstSlotOnWeekday(created.id());
+    BookingResponse booking = book(slot, created.id());
+    assertEquals(created.id(), booking.bookingTypeId());
+
+    var deleteResponse =
+        client.toBlocking().exchange(HttpRequest.DELETE("/api/host/booking-types/" + created.id()));
+    assertEquals(204, deleteResponse.code());
+
+    // Hidden from guests, but still listed for the host so existing bookings keep their label.
+    assertTrue(listPublic().stream().noneMatch(type -> type.id() == created.id()));
+    BookingTypeResponse hidden =
+        listHost().stream().filter(type -> type.id() == created.id()).findFirst().orElseThrow();
+    assertFalse(hidden.active());
+    assertEquals("Referenced type", hidden.title());
+  }
+
+  @Test
   void creatingATypeWithBlankTitleOrOutOfRangeDurationIs400() {
     assertStatus(
         400, HttpRequest.POST("/api/host/booking-types", new CreateTypeBody("  ", null, 30)));
@@ -200,6 +219,14 @@ class BookingTypeFlowTest {
         .toBlocking()
         .retrieve(
             HttpRequest.GET("/api/booking-types"),
+            new GenericArgument<List<BookingTypeResponse>>() {});
+  }
+
+  private List<BookingTypeResponse> listHost() {
+    return client
+        .toBlocking()
+        .retrieve(
+            HttpRequest.GET("/api/host/booking-types"),
             new GenericArgument<List<BookingTypeResponse>>() {});
   }
 

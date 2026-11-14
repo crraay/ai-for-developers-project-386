@@ -187,6 +187,7 @@ describe('HostBookingTypesPage', () => {
     fixture.detectChanges();
 
     expect(host.textContent).toContain('Delete this booking type?');
+    expect(host.textContent).toContain('hidden instead of removed');
 
     const buttons: HTMLButtonElement[] = Array.from(host.querySelectorAll('.delete-dialog button'));
     const deleteButton = buttons.find((b) => b.textContent?.trim() === 'Delete');

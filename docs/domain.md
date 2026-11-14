@@ -9,7 +9,9 @@ scope per `docs/product.md`.
 - **Booking type** (host-defined, per `GLOSSARY.md`): title, description,
   duration in minutes (5–240), sort order, visible flag. The guest picks one
   instead of a bare duration; the duration is derived server-side from the
-  picked type. Seeded: *Quick chat* (30 min) and *Deep dive* (60 min).
+  picked type. Deleting removes an unreferenced type; a type still referenced
+  by a booking is hidden instead so the booking keeps its label. Seeded:
+  *Quick chat* (30 min) and *Deep dive* (60 min).
 - **Recurring window**: day(s) of week + time-of-day range, expressed as an
   rrule; repeats indefinitely. v1 constraint: an occurrence never crosses
   midnight — its end is its start plus the window length, computed on the
