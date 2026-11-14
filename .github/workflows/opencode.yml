@@ -12,6 +12,12 @@ name: opencode
 # write, secrets are read only by the agent step, the OpenCode action refuses
 # actors without admin or write access, and no pull-request code is checked
 # out or executed.
+#
+# No human is present to answer a permission prompt. A permission that resolves
+# to `ask` blocks the tool call until the job timeout, and the run ends without
+# a reply (issue #52: `external_directory`, hit by a `tail` of opencode's own
+# log). The agent step denies those permissions instead, so the model gets a
+# tool error it can read and work around, and always reaches its reply step.
 on:
   issue_comment:
     types: [created]
@@ -67,3 +73,7 @@ jobs:
           mentions: /oc,/opencode
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          # Anything that would prompt is denied: `ask` cannot be answered on a
+          # runner. Shape is opencode's V1 `permission` object (the 1.19.x
+          # binary the action installs), merged over opencode.json.
+          OPENCODE_PERMISSION: '{"external_directory":"deny","question":"deny"}'

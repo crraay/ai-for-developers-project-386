@@ -4,7 +4,7 @@
 
 ### Commits
 
-Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) — enforced by `commitlint.config.mjs` (commit-msg hk hook) and CI (`commitlint` runs over the pushed range).
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) — enforced by `commitlint.config.mjs` (commit-msg hk hook) and CI (`commitlint` runs over the pushed range). PR titles follow the same ruleset: `pr-title.yml` pipes the title through `commitlint`, so a title without `type(scope):` fails CI even when every commit is fine. Inside an `/oc` run `gh` is unauthenticated (writes go through the action's App token), so report a title or description that a human must edit instead of looking for a credential.
 
 Commits and PRs reference their ticket. `Refs #<n>` in the commit body points at the issue the change works on; `Closes #<n>` in the PR description closes it once the acceptance criteria are met; `Part of #<map>` covers work bundled under a decision map (see `docs/agents/issue-tracker.md`). An implementation commit without a referenceable issue is an exception — raise it with a human before merging.
 
