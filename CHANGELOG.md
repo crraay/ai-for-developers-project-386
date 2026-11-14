@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/crraay/ai-for-developers-project-386/compare/v0.3.0...v0.4.0) (2026-11-14)
+
+
+### Features
+
+* **frontend:** replace Angular with React and Vite ([7fd51ed](https://github.com/crraay/ai-for-developers-project-386/commit/7fd51eda5d5a68351615d15ff1d6ef78a12b05f0))
+
+
+### Bug Fixes
+
+* **backend:** hide referenced booking types on delete ([b810424](https://github.com/crraay/ai-for-developers-project-386/commit/b8104249ad388b1d6a646f16519de78b2c785e82))
+* **ci:** keep release-please running on the default branch ([da9cb31](https://github.com/crraay/ai-for-developers-project-386/commit/da9cb311e01988b94cbde36878e3411300b0251d))
+* **ci:** keep release-please running on the default branch ([3073e47](https://github.com/crraay/ai-for-developers-project-386/commit/3073e4795acc8dc6470b5ee2d9765c1d28fa7c3d)), closes [#46](https://github.com/crraay/ai-for-developers-project-386/issues/46)
+
 ## [0.3.0](https://github.com/crraay/ai-for-developers-project-386/compare/v0.2.0...v0.3.0) (2026-11-13)
 
 
