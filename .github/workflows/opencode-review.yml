@@ -1,7 +1,8 @@
 name: opencode-review
 
-# Every non-draft pull request from a branch in this repository is reviewed by
-# the OpenCode agent when it is opened, pushed to, reopened or made ready. The
+# Every non-draft pull request authored by the repository owner or
+# `opencode-agent[bot]`, from a branch in this repository, is reviewed by the
+# OpenCode agent when it is opened, pushed to, reopened or made ready. The
 # review is advisory: it is not a required check and a failed run never fails
 # the pull request.
 #
@@ -116,10 +117,13 @@ jobs:
           # job timeout (#52). Everything the review needs is allowed; the rest
           # is denied, not asked. In the V1 `permission` object a rule is either
           # an action or a command map, and the last matching key wins, so the
-          # wildcard comes first and the guard below comes last. `edit` is denied
+          # wildcard comes first and the guards below come last. `edit` is denied
           # to keep the worktree clean — a dirty tree would be committed and
           # pushed by the action — and the web is denied because the review reads
-          # the PR, not links pasted into it.
+          # the PR, not links pasted into it. The two trailing guards close the
+          # git escapes the reads would otherwise open: `--output` writes into
+          # the worktree, and `--no-index` reads a path outside the checkout,
+          # which `external_directory` cannot stop once the command is `git diff`.
           OPENCODE_PERMISSION: |
             {
               "edit": "deny",
@@ -143,6 +147,7 @@ jobs:
                 "gh pr checks *": "allow",
                 "gh issue view *": "allow",
                 "gh run view *": "allow",
-                "*--output*": "deny"
+                "*--output*": "deny",
+                "*--no-index*": "deny"
               }
             }

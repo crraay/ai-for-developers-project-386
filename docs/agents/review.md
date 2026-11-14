@@ -1,9 +1,12 @@
 # Automatic pull-request review
 
-Every non-draft pull request from a branch in this repository is reviewed by the
-OpenCode agent in `.github/workflows/opencode-review.yml`. The review is posted
-as a PR comment. It is **advisory**: it is not a required check, and a failed
-run never fails the pull request. A human still decides what merges.
+Every non-draft pull request authored by the repository owner or
+`opencode-agent[bot]`, from a branch in this repository, is reviewed by the
+OpenCode agent in `.github/workflows/opencode-review.yml`. `release-please[bot]`,
+`dependabot[bot]` and `release-please--*` branches are skipped, and so are forks.
+The review is posted as a PR comment. It is **advisory**: it is not a required
+check, and a failed run never fails the pull request. A human still decides what
+merges.
 
 This file is the contract for that review. The two axes below are the ones in
 the `code-review` skill; when the skill and this file disagree, this file wins.

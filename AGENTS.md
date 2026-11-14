@@ -28,7 +28,7 @@ Lint rules are never disabled to get a change through. Exceptions are narrow (on
 
 ### Pull request review
 
-Every non-draft PR from a branch in this repo is reviewed automatically by `opencode-review.yml`: the agent reads the diff, the linked ticket and CI, then posts one comment. The contract it follows is `docs/agents/review.md`. The review is advisory — it is not a required check, a failed run does not fail the PR, and nothing it says is an approval. Unlike an `/oc` run, this one gets a read-only `GH_TOKEN` (so `gh pr view|diff|checks` work) and a read-only shell whitelist: it cannot edit, commit or approve anything. A new comment is posted on every push (#55).
+Every non-draft PR authored by the repository owner or `opencode-agent[bot]` is reviewed automatically by `opencode-review.yml` (release-please, dependabot and fork PRs are skipped): the agent reads the diff, the linked ticket and CI, then posts one comment. The contract it follows is `docs/agents/review.md`. The review is advisory — it is not a required check, a failed run does not fail the PR, and nothing it says is an approval. Unlike an `/oc` run, this one gets a read-only `GH_TOKEN` (so `gh pr view|diff|checks` work) and a read-only shell whitelist: it cannot edit, commit or approve anything. A new comment is posted on every push (#55).
 
 ### Running the application
 
