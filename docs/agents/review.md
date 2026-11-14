@@ -23,18 +23,21 @@ the `code-review` skill; when the skill and this file disagree, this file wins.
 ## Inputs
 
 - The request: `gh pr view <n> --json number,title,body,baseRefName,headRefName,commits,files`.
-- The patch: `gh pr diff <n>`. Prefer it over a local diff; it is what the
-  reviewers will merge.
+- The patch: `gh pr diff <n>` — the only way to read it. `git diff` is not on
+  the whitelist: given two paths outside the worktree it enters no-index mode
+  by itself and reads files the checkout does not contain.
 - The conversation: `gh pr view <n> --comments`. Earlier reviews and the replies
   to them are part of the input.
 - The tickets the description links (`Closes #n`, `Refs #n`, `Part of #n`):
   `gh issue view <n>`. Read the acceptance criteria, not just the title.
 - CI: `gh pr checks <n>`, and `gh run view <id>` when a check failed.
 
-Shell access is a read-only whitelist: `git status|log|show|diff|merge-base|
-rev-parse` and `gh pr view|diff|checks`, `gh issue view`, `gh run view`. Nothing
-else runs, and `edit`, `question`, `webfetch`, `websearch` and `task` are
-denied. There is no comment or approval tool — report, do not act.
+Shell access is a read-only whitelist: `git status|log|show|merge-base|rev-parse`
+and `gh pr view|diff|checks`, `gh issue view`, `gh run view`. Nothing else runs,
+and `edit`, `question`, `webfetch`, `websearch` and `task` are denied. Redirects
+are denied as well, so a command that needs `>`, `<` or `|` will not run; keep
+`--jq` filters free of `>` and `<`, which the guard cannot tell from a
+redirect. There is no comment or approval tool — report, do not act.
 
 ## Axes
 

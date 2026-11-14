@@ -97,9 +97,9 @@ jobs:
             The pull request number is exported as $PR. Read the request with
             `gh pr view $PR --json number,title,body,baseRefName,headRefName,commits,files`,
             the patch with `gh pr diff $PR`, the earlier conversation with
-            `gh pr view $PR --comments`, each linked ticket with
-            `gh issue view <n>`, and CI evidence with `gh pr checks $PR` and
-            `gh run view <id>`.
+            `gh pr view $PR --comments`, each linked ticket with `gh issue view`
+            and the ticket number, and CI evidence with `gh pr checks $PR`,
+            `gh run view` and the id from a failing check.
 
             Shell access is limited to those read commands, and tools cannot
             edit, commit, push, approve, request changes or comment. Report;
@@ -120,10 +120,15 @@ jobs:
           # wildcard comes first and the guards below come last. `edit` is denied
           # to keep the worktree clean — a dirty tree would be committed and
           # pushed by the action — and the web is denied because the review reads
-          # the PR, not links pasted into it. The two trailing guards close the
-          # git escapes the reads would otherwise open: `--output` writes into
-          # the worktree, and `--no-index` reads a path outside the checkout,
-          # which `external_directory` cannot stop once the command is `git diff`.
+          # the PR, not links pasted into it.
+          #
+          # `git diff` is deliberately absent. Given two paths outside the
+          # worktree it enters no-index mode by itself, with no flag to deny, and
+          # then reads files `external_directory` is meant to keep out; the patch
+          # comes from `gh pr diff` instead. The guards close the ways a
+          # whitelisted command stops being read-only: a redirect (`>`, `2>`,
+          # `&>`, `<<`) writes or reads a path the command never saw, and
+          # `--output` makes git itself write.
           OPENCODE_PERMISSION: |
             {
               "edit": "deny",
@@ -139,7 +144,6 @@ jobs:
                 "git status *": "allow",
                 "git log *": "allow",
                 "git show *": "allow",
-                "git diff *": "allow",
                 "git merge-base *": "allow",
                 "git rev-parse *": "allow",
                 "gh pr view *": "allow",
@@ -148,6 +152,8 @@ jobs:
                 "gh issue view *": "allow",
                 "gh run view *": "allow",
                 "*--output*": "deny",
-                "*--no-index*": "deny"
+                "*--no-index*": "deny",
+                "*>*": "deny",
+                "*<*": "deny"
               }
             }
