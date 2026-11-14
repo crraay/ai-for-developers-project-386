@@ -126,8 +126,12 @@ public class BookingTypeController {
   }
 
   @Delete("/api/host/booking-types/{id}")
-  @Operation(summary = "Delete a booking type", operationId = "deleteBookingType")
-  @ApiResponse(responseCode = "204", description = "Type deleted")
+  @Operation(
+      summary = "Delete a booking type, hiding it when bookings still reference it",
+      operationId = "deleteBookingType")
+  @ApiResponse(
+      responseCode = "204",
+      description = "Type deleted, or hidden when existing bookings still reference it")
   @ApiResponse(
       responseCode = "404",
       description = "No booking type with this id",
