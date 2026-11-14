@@ -158,7 +158,7 @@ export const createBookingType = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Delete a booking type
+ * Delete a booking type, hiding it when bookings still reference it
  */
 export const deleteBookingType = <ThrowOnError extends boolean = false>(
   options: Options<DeleteBookingTypeData, ThrowOnError>,

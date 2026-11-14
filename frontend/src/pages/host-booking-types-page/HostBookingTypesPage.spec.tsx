@@ -171,6 +171,7 @@ describe('HostBookingTypesPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.getByText('Delete this booking type?')).toBeInTheDocument();
+    expect(screen.getByText(/hidden instead of removed/)).toBeInTheDocument();
 
     const dialog = screen.getByText('Delete this booking type?').closest('dialog');
     expect(dialog).not.toBeNull();

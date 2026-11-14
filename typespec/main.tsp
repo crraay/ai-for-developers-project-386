@@ -156,7 +156,7 @@ model HostBookingNotFound {
   @body body: ProblemDetail;
 }
 
-@doc("Type deleted")
+@doc("Type deleted, or hidden when existing bookings still reference it so their label survives")
 model DeleteBookingTypeResponse {
   @statusCode statusCode: 204;
 }
@@ -331,7 +331,7 @@ interface BookingTypes {
     @body body: UpdateBookingTypeRequest,
   ): UpdateBookingTypeResponse | BookingTypeBadRequest | BookingTypeNotFound;
 
-  @summary("Delete a booking type")
+  @summary("Delete a booking type, hiding it when bookings still reference it")
   @operationId("deleteBookingType")
   @delete
   @route("/host/booking-types/{id}")

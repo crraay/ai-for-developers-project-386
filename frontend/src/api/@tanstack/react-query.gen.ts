@@ -294,7 +294,7 @@ export const createBookingTypeMutation = (
 };
 
 /**
- * Delete a booking type
+ * Delete a booking type, hiding it when bookings still reference it
  */
 export const deleteBookingTypeMutation = (
   options?: Partial<Options<DeleteBookingTypeData>>,

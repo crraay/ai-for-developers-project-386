@@ -369,8 +369,8 @@ function HostBookingTypesPage() {
           >
             <h3>Delete this booking type?</h3>
             <p className={styles.hint}>
-              Existing bookings keep their type label; the type just won&apos;t appear to new
-              guests.
+              Existing bookings keep their type label. If any booking uses this type, it is hidden
+              instead of removed so those bookings keep their label.
             </p>
             {deleteError !== null && (
               <p className={styles.error} role="alert">

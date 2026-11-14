@@ -295,7 +295,7 @@ export type DeleteBookingTypeError = DeleteBookingTypeErrors[keyof DeleteBooking
 
 export type DeleteBookingTypeResponses = {
   /**
-   * Type deleted
+   * Type deleted, or hidden when existing bookings still reference it so their label survives
    */
   204: void;
 };
