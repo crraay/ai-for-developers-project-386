@@ -13,8 +13,10 @@ function scopedClassName(localName: string, filename: string): string {
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 4200 },
-  preview: { port: 4200 },
+  // Vite's default dev-server port; strict so a squatter fails loudly instead
+  // of silently moving to 5174 and breaking CORS and the docs.
+  server: { port: 5173, strictPort: true },
+  preview: { port: 5173 },
   css: {
     modules: {
       generateScopedName: scopedClassName,

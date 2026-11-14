@@ -47,7 +47,7 @@ Run the whole stack:
 docker compose up --build
 ```
 
-- Frontend: http://localhost:4200
+- Frontend: http://localhost:5173
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
 - Swagger UI: http://localhost:8080/swagger-ui/ (raw spec: `/swagger/call-calendar-0.1.yml`)
 - PostgreSQL: localhost:5434 (`postgres`/`postgres`, db `callcalendar`; 5432 is used by a local PostgreSQL install on this machine)
@@ -74,7 +74,7 @@ On Render, the managed Postgres survives service restarts, but the free instance
 What a guest books is one of the **booking types** the host has set up — each
 type carries its own title, description, and duration, and the guest picks one
 instead of choosing a raw duration. The host manages them at
-**http://localhost:4200/host/booking-types**; the two seeded types on a fresh
+**http://localhost:5173/host/booking-types**; the two seeded types on a fresh
 database are:
 
 | Order | Title       | Duration |
@@ -84,7 +84,7 @@ database are:
 
 A guest flow that uses both:
 
-1. Open **http://localhost:4200/book**, pick a day, and choose **Deep dive**
+1. Open **http://localhost:5173/book**, pick a day, and choose **Deep dive**
    from the *Booking type* picker.
 2. Click any of the time slots — each one carries the chosen `bookingTypeId`,
    so picking the same slot with **Quick chat** would show 30-minute windows
@@ -155,7 +155,7 @@ Free-tier caveats:
 - The frontend's API URL is baked in at build time by the Vite mode
   (`frontend/.env.production` → `VITE_API_BASE_URL`); the backend's allowed origin
   comes from the `CORS_ALLOWED_ORIGINS` Render env var (defaulting to
-  `http://localhost:4200` locally).
+  `http://localhost:5173` locally).
 - The static site's build command and publish directory live in the Render
   dashboard, not in the repo: build with `npm ci && npm run build` in
   `frontend/` and publish `frontend/dist`.

@@ -38,7 +38,7 @@ services:
         MODE: development
     image: frontend:smoke
     ports:
-      - "4200:80"
+      - "5173:80"
     depends_on:
       - backend
 

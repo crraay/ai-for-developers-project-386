@@ -32,7 +32,7 @@ The fastest way to run the full stack from a clean clone is Docker Compose:
 docker compose up --build
 ```
 
-- Frontend: http://localhost:4200
+- Frontend: http://localhost:5173
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
 - PostgreSQL: localhost:5434
 

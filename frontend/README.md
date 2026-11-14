@@ -9,7 +9,7 @@ for why React replaced Angular.
 From the repository root, `mise run setup` installs the JS dependencies once.
 
 ```bash
-npm start          # Vite dev server on http://localhost:4200
+npm start          # Vite dev server on http://localhost:5173
 npm run build      # type-check, then production build into dist/
 npm test           # Vitest + Testing Library, one worker (Windows-safe gate)
 npm run lint       # ESLint (flat config)
