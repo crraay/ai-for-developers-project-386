@@ -1,8 +1,13 @@
 name: release-please
 
+# The action always operates on the repository's default branch, not on the
+# ref that triggered it, so this trigger must name the default branch. It said
+# `main` after the default branch moved to `dev`, which silently stopped all
+# releases: merging a release PR into `dev` started no run, so no tag/release.
 on:
   push:
-    branches: [main] # default branch only: never on feature branches or tags
+    branches: [dev] # default branch only: never on feature branches or tags
+  workflow_dispatch: # manual recovery after a skipped or failed run
 
 permissions: {}
 
