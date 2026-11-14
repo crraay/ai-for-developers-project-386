@@ -44,8 +44,9 @@ jobs:
   review:
     # Drafts are skipped until they are ready for review. Forks are skipped:
     # they get a read-only token and no secrets, so the run could not reach the
-    # model at all. Bot PRs are skipped because their bodies are generated on a
-    # schedule rather than written as a change to review.
+    # model at all. The author allowlist below is what excludes
+    # `release-please[bot]` and `dependabot[bot]`: their bodies are generated on
+    # a schedule rather than written as a change to review.
     if: >-
       !github.event.pull_request.draft &&
       github.event.pull_request.head.repo.full_name == github.repository &&

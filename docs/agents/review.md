@@ -13,7 +13,9 @@ the `code-review` skill; when the skill and this file disagree, this file wins.
 1. `AGENTS.md` — how this repo works (gates, generated files, commits, tickets).
 2. `CODING_STANDARDS.md` — how code here is written.
 3. `.agents/skills/code-review/SKILL.md` — the method: two axes, plus the
-   Fowler smell baseline for the Standards axis.
+   Fowler smell baseline for the Standards axis. The skill runs its axes as
+   parallel sub-agents; this run has one context and no `task` tool, so work
+   both axes in sequence and keep their headings separate.
 
 ## Inputs
 
