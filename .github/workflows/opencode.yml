@@ -98,6 +98,7 @@ jobs:
       # pull-requests write; this workflow's GITHUB_TOKEN stays read-only, and
       # the action refuses actors without admin or write access to the repo.
       - name: Run OpenCode
+        id: agent
         uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # latest, 2026-11-13
         with:
           model: opencode-go/deepseek-v4.1-flash
@@ -114,9 +115,11 @@ jobs:
       # OIDC token for the same App token the action used. The action revokes
       # its own token in `finally`, before this step, so it cannot be reused.
       # Reply first, delete second: a failure leaves the action's top-level
-      # comment in place rather than losing the answer.
+      # comment in place rather than losing the answer. Run only after the
+      # agent succeeded, or a lone auto-review comment could be mistaken for
+      # the answer when the run posted none.
       - name: Answer in the review thread
-        if: ${{ !cancelled() && github.event_name == 'pull_request_review_comment' }}
+        if: ${{ !cancelled() && steps.agent.outcome == 'success' && github.event_name == 'pull_request_review_comment' }}
         env:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
