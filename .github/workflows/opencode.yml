@@ -5,14 +5,16 @@ name: opencode
 # review code. The comment body is used as data only: it is never interpolated
 # into a shell command.
 #
-# `issue_comment` is a dangerous trigger by design: it runs in the context of
-# the default branch with the job's secrets and token, and anyone who can
-# comment can start it. It is the only trigger that carries the comment, so the
-# finding is accepted with one scoped, expiring exception in
+# `issue_comment` and `pull_request_review_comment` are dangerous triggers by
+# design: they run in the context of the default branch with the job's secrets
+# and token, and anyone who can comment can start them. Both carry the comment,
+# so the finding is accepted with one scoped, expiring exception in
 # .github/jactionlint.yaml. The mitigations live here: GITHUB_TOKEN cannot
-# write, secrets are read only by the agent step, and the OpenCode action
-# refuses actors without admin or write access before it checks out the PR
-# head, so only a trusted actor can put PR code in front of the agent.
+# write (the boundary step reads with it), the model key is read only by the
+# agent step, and the OpenCode action refuses actors without admin or write
+# access before it checks out the PR head, so only a trusted actor can put PR
+# code in front of the agent. The last step exchanges a fresh OIDC token for
+# the App token because the action revokes its own in `finally`.
 #
 # A comment on a code line is a message in that line's thread, not in the PR
 # conversation. The pinned action already gives the agent the file, line and
@@ -77,8 +79,11 @@ jobs:
       # `pulls.createReplyForReviewComment`. Remember the newest comment before
       # the run so the answer posted by this run can be told apart from older
       # bot comments. Read-only: the job token lists, the App token writes.
+      # A failure here must not stop the agent: the last step treats a missing
+      # boundary as "leave the answer where the action put it".
       - name: Remember the newest PR comment
         if: github.event_name == 'pull_request_review_comment'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -150,13 +155,23 @@ jobs:
           echo "::add-mask::$app"
           export GH_TOKEN="$app"
 
-          answer_id=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+          # Only move when exactly one new bot comment exists. The auto-review
+          # posts as the same bot under a separate concurrency group: if one of
+          # its comments lands in this window, picking the newest would put the
+          # review in the thread and leave the real answer behind.
+          answer_ids=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
             --jq ".[] | select(.id > $boundary) | select(.user.login == \"$BOT\") | .id" \
-            | sort -n | tail -n 1)
-          if [ -z "$answer_id" ]; then
+            | sort -n)
+          if [ -z "$answer_ids" ]; then
             echo "The run posted no answer to move."
             exit 0
           fi
+          count=$(printf '%s\n' "$answer_ids" | wc -l | tr -d ' ')
+          if [ "$count" -ne 1 ]; then
+            echo "::warning::Found $count new bot comments after the boundary; leaving them in place."
+            exit 0
+          fi
+          answer_id=$answer_ids
 
           gh api "repos/$REPO/issues/comments/$answer_id" --jq .body > "$tmp/answer.md"
           if [ ! -s "$tmp/answer.md" ]; then
