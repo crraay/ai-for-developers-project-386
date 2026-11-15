@@ -10,6 +10,10 @@ import {
 
 const API = 'http://localhost:8080';
 
+/** The instant a slot link points at: `/book/<ISO instant>?bookingTypeId=<id>`. */
+const slotStart = (href: string) =>
+  new Date(decodeURIComponent(href.split('?')[0].replace('/book/', '')));
+
 test('guest books a chosen meeting type and the host sees it', async ({ page }) => {
   test.setTimeout(60_000);
 
@@ -302,17 +306,28 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     const slotLinks = page.locator('.book-page__slot-link');
     await expect(slotLinks.first()).toBeVisible({ timeout: 10_000 });
     // Wait for the chosen day to land in the hrefs so slots from the default day are never
-    // judged against this date.
-    await expect(slotLinks.first()).toHaveAttribute('href', new RegExp(bookingDay));
+    // judged against this date. The href holds a UTC instant, so the day it belongs to is
+    // that instant in the guest's zone, not a substring of the href: a slot at the guest's
+    // midnight (00:00 in Auckland is 11:00Z the day before) never contains the picked date.
+    await expect
+      .poll(
+        async () => {
+          const href = await slotLinks.first().getAttribute('href');
+          return href ? formatDateInTimeZone(slotStart(href), 'Pacific/Auckland') : null;
+        },
+        {
+          timeout: 10_000,
+          message: `no slot link on ${bookingDay}; waiting for ${API}/api/slots?date=${bookingDay}&bookingTypeId=${typeId}`,
+        },
+      )
+      .toBe(bookingDay);
     expect(requestedZones).toContain('Pacific/Auckland');
 
     // Every start offered under the picked date falls on that date in the guest's calendar...
     const hrefs = await slotLinks.evaluateAll((links) =>
       links.map((link) => link.getAttribute('href') ?? ''),
     );
-    const guestStarts = hrefs.map((href) =>
-      new Date(decodeURIComponent(href.split('?')[0].replace('/book/', ''))),
-    );
+    const guestStarts = hrefs.map(slotStart);
     expect(guestStarts.length).toBeGreaterThan(0);
     guestStarts.forEach((start) =>
       expect(formatDateInTimeZone(start, 'Pacific/Auckland')).toBe(bookingDay),
