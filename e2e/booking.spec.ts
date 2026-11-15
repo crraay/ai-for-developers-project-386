@@ -1,92 +1,53 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+import {
+  addDaysToDateString,
+  firstWeekdayAfter,
+  formatDateInTimeZone,
+  futureWeekdayDate,
+  lastWeekdayOnOrBefore,
+} from './dates';
 
 const API = 'http://localhost:8080';
+const GUEST_TIME_ZONE = 'Pacific/Auckland';
 
-function addDays(date: Date, days: number): Date {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
+/** The instant a slot link points at: `/book/<ISO instant>?bookingTypeId=<id>`. */
+const slotStart = (href: string) =>
+  new Date(decodeURIComponent(href.split('?')[0].replace('/book/', '')));
 
-function formatDateInTimeZone(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date);
-}
-
-function weekdayInTimeZone(dateString: string, timeZone: string): number {
-  const value = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    weekday: 'short',
-  }).format(new Date(`${dateString}T12:00:00`));
-  const map: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
-  return map[value];
-}
-
-function isWeekday(dateString: string): boolean {
-  // The string is already a host-local calendar date; weekday is pure calendar
-  // arithmetic, so no timezone conversion is involved.
-  const [year, month, day] = dateString.split('-').map(Number);
-  const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return dayOfWeek !== 0 && dayOfWeek !== 6;
-}
-
-/** Pure calendar arithmetic on a yyyy-mm-dd string (no timezones involved). */
-function addDaysToDateString(dateString: string, days: number): string {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day + days, 12));
-  return date.toISOString().slice(0, 10);
-}
-
-function lastWeekdayOnOrBefore(dateString: string): string {
-  for (let offset = 0; offset < 7; offset++) {
-    const candidate = addDaysToDateString(dateString, -offset);
-    if (isWeekday(candidate)) {
-      return candidate;
-    }
-  }
-  /* c8 ignore next -- a 7-day look-back always finds a weekday */
-  throw new Error(`no weekday on or before ${dateString}`);
-}
-
-function firstWeekdayAfter(dateString: string): string {
-  for (let offset = 1; offset <= 7; offset++) {
-    const candidate = addDaysToDateString(dateString, offset);
-    if (isWeekday(candidate)) {
-      return candidate;
-    }
-  }
-  /* c8 ignore next -- a 7-day look-ahead always finds a weekday */
-  throw new Error(`no weekday after ${dateString}`);
-}
+/** The zone the page reports, which is the one the picker sends to `/api/slots`. */
+const pageTimeZone = (page: Page) =>
+  page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 /**
- * Returns a future weekday (Mon-Fri) at least `minDays` out, formatted as
- * yyyy-mm-dd in the given IANA timezone. The booking window is 14 calendar days
- * including today, so staying well inside it keeps the slot bookable.
+ * Waits until the first slot link belongs to `day` in the zone the picker queried, then
+ * returns it. The href holds a UTC instant, so the day it belongs to is that instant in
+ * that zone, never a substring of the href: a slot at midnight (00:00 in Auckland is 11:00Z
+ * the day before) does not contain the picked date. Both waits name the request they are
+ * waiting for, because that is the failure a reader has to diagnose.
  */
-function futureWeekdayDate(timeZone: string, minDays = 2): string {
-  let candidate = addDays(new Date(), minDays);
-  while (true) {
-    const formatted = formatDateInTimeZone(candidate, timeZone);
-    const day = weekdayInTimeZone(formatted, timeZone);
-    if (day !== 0 && day !== 6) {
-      return formatted;
-    }
-    candidate = addDays(candidate, 1);
-  }
-}
+const firstSlotOn = async (
+  page: Page,
+  day: string,
+  timeZone: string,
+  bookingTypeId?: number | string,
+) => {
+  const query = new URLSearchParams({ date: day, timeZone });
+  if (bookingTypeId !== undefined) query.set('bookingTypeId', String(bookingTypeId));
+  const message = `no slot on ${day} in ${timeZone}; waiting for ${API}/api/slots?${query}`;
+  const slot = page.locator('.book-page__slot-link').first();
+  await expect(slot, message).toBeVisible({ timeout: 10_000 });
+  await expect
+    .poll(
+      async () => {
+        const href = await slot.getAttribute('href');
+        return href ? formatDateInTimeZone(slotStart(href), timeZone) : null;
+      },
+      { timeout: 10_000, message },
+    )
+    .toBe(day);
+  return slot;
+};
 
 test('guest books a chosen meeting type and the host sees it', async ({ page }) => {
   test.setTimeout(60_000);
@@ -101,15 +62,17 @@ test('guest books a chosen meeting type and the host sees it', async ({ page }) 
   const { timezone: hostTimeZone } = await settingsResponse.json();
 
   await page.goto('/');
-  await expect(page.locator('app-home-page')).toBeVisible();
-  await page.locator('a.cta').click();
+  await expect(
+    page.getByRole('heading', { name: 'Book a call, no account needed' }),
+  ).toBeVisible();
+  await page.locator('.home-page__cta').click();
 
   await expect(page.getByRole('heading', { name: 'Pick a time' })).toBeVisible();
 
   // Wait for the initial page load (booking types + slots for today) before
   // changing the date, otherwise the constructor may overwrite the input.
   await expect(
-    page.locator('.slot-link').first().or(page.getByText('No available slots on this day.')),
+    page.locator('.book-page__slot-link').first().or(page.getByText('No available slots on this day.')),
   ).toBeVisible({ timeout: 10_000 });
 
   // Two seeded booking types of different durations are offered, and the guest
@@ -141,37 +104,34 @@ test('guest books a chosen meeting type and the host sees it', async ({ page }) 
 
   // Preview the 30-minute type on a slot: the confirm page must show that
   // type's title and derived duration, not a generic booking. Wait for the
-  // chosen day to land in the hrefs so a stale slot from another day is never
-  // clicked.
-  const firstSlot = page.locator('.slot-link').first();
-  await expect(firstSlot).toBeVisible({ timeout: 10_000 });
-  await expect(firstSlot).toHaveAttribute('href', new RegExp(bookingDay));
+  // chosen day so a stale slot from another day is never clicked.
+  const zone = await pageTimeZone(page);
+  const firstSlot = await firstSlotOn(page, bookingDay, zone);
   await typeSelect.selectOption(quickChat.value);
   await expect(firstSlot).toHaveAttribute('href', new RegExp(`bookingTypeId=${quickChat.value}`));
   await firstSlot.click();
 
   await expect(page.getByRole('heading', { name: 'Confirm your booking' })).toBeVisible();
-  await expect(page.locator('.summary')).toContainText('Quick chat (30 min)');
+  await expect(page.locator('.book-form-page__summary')).toContainText('Quick chat (30 min)');
 
   // Back to the picker, then book the same slot with the 60-minute type: the
   // window on the confirm page follows the chosen type.
   await page.getByRole('link', { name: 'Pick another time' }).click();
   await expect(page.getByRole('heading', { name: 'Pick a time' })).toBeVisible();
   await expect(
-    page.locator('.slot-link').first().or(page.getByText('No available slots on this day.')),
+    page.locator('.book-page__slot-link').first().or(page.getByText('No available slots on this day.')),
   ).toBeVisible({ timeout: 10_000 });
 
   await dayInput.fill(bookingDay);
   await dayInput.press('Tab');
-  await expect(firstSlot).toBeVisible({ timeout: 10_000 });
-  await expect(firstSlot).toHaveAttribute('href', new RegExp(bookingDay));
+  await firstSlotOn(page, bookingDay, zone);
 
   await typeSelect.selectOption(deepDive.value);
   await expect(firstSlot).toHaveAttribute('href', new RegExp(`bookingTypeId=${deepDive.value}`));
   await firstSlot.click();
 
   await expect(page.getByRole('heading', { name: 'Confirm your booking' })).toBeVisible();
-  await expect(page.locator('.summary')).toContainText('Deep dive (60 min)');
+  await expect(page.locator('.book-form-page__summary')).toContainText('Deep dive (60 min)');
   await expect(page.getByText('A longer conversation for a deeper talk.')).toBeVisible();
 
   await page.getByLabel('Your name').fill(guestName);
@@ -231,7 +191,7 @@ test('the booking window is exactly the first 14 calendar days', async ({ page }
 
   await dayInput.fill(lastWeekday);
   await dayInput.press('Tab');
-  await expect(page.locator('.slot-link').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('.book-page__slot-link').first()).toBeVisible({ timeout: 10_000 });
 
   // ...and it is bookable, not just browsable: the very last day of the
   // window accepts a booking with 201.
@@ -296,16 +256,15 @@ test('a second guest racing for the same slot is refused and one booking survive
   // Take the slot exactly where a guest meets it: off the picker's own link.
   await page.goto('/book');
   await expect(page.getByRole('heading', { name: 'Pick a time' })).toBeVisible();
+  const zone = await pageTimeZone(page);
   const dayInput = page.getByLabel('Day');
   await dayInput.fill(bookingDay);
   await dayInput.press('Tab');
-  const slotLink = page.locator('.slot-link').first();
-  await expect(slotLink).toBeVisible({ timeout: 10_000 });
-  // Wait for the chosen day to land in the hrefs so a stale slot from the default day is
-  // never taken for the racing booking.
-  await expect(slotLink).toHaveAttribute('href', new RegExp(bookingDay));
+  // Wait for the chosen day so a stale slot from the default day is never taken for the
+  // racing booking.
+  const slotLink = await firstSlotOn(page, bookingDay, zone, typeId);
   const href = (await slotLink.getAttribute('href')) ?? '';
-  const start = decodeURIComponent(href.split('?')[0].replace('/book/', ''));
+  const start = slotStart(href).toISOString();
 
   // Guest A takes it against the real server.
   const first = await page.request.post(`${API}/api/bookings`, {
@@ -331,7 +290,10 @@ test('a second guest racing for the same slot is refused and one booking survive
 
   // ...and the server still holds exactly one booking for that interval.
   const bookings = await (await page.request.get(`${API}/api/bookings`)).json();
-  const sameSlot = bookings.filter((booking: { start: string }) => booking.start === start);
+  const startedAt = slotStart(href).getTime();
+  const sameSlot = bookings.filter(
+    (booking: { start: string }) => new Date(booking.start).getTime() === startedAt,
+  );
   expect(sameSlot).toHaveLength(1);
   expect(sameSlot[0].guestEmail).toBe('first@example.com');
 });
@@ -347,7 +309,7 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     // internally: CDP emulation. The browser then reports Auckland from `Intl` for real, and the
     // server does the actual work - no API response is faked.
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Emulation.setTimezoneOverride', { timezoneId: 'Pacific/Auckland' });
+    await cdp.send('Emulation.setTimezoneOverride', { timezoneId: GUEST_TIME_ZONE });
 
     const settingsResponse = await page.request.get(`${API}/api/host-settings`);
     expect(settingsResponse.ok()).toBeTruthy();
@@ -375,23 +337,18 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
 
     await dayInput.fill(bookingDay);
     await dayInput.press('Tab');
-    const slotLinks = page.locator('.slot-link');
-    await expect(slotLinks.first()).toBeVisible({ timeout: 10_000 });
-    // Wait for the chosen day to land in the hrefs so slots from the default day are never
-    // judged against this date.
-    await expect(slotLinks.first()).toHaveAttribute('href', new RegExp(bookingDay));
-    expect(requestedZones).toContain('Pacific/Auckland');
+    const slotLinks = page.locator('.book-page__slot-link');
+    await firstSlotOn(page, bookingDay, GUEST_TIME_ZONE, typeId);
+    expect(requestedZones).toContain(GUEST_TIME_ZONE);
 
     // Every start offered under the picked date falls on that date in the guest's calendar...
     const hrefs = await slotLinks.evaluateAll((links) =>
       links.map((link) => link.getAttribute('href') ?? ''),
     );
-    const guestStarts = hrefs.map((href) =>
-      new Date(decodeURIComponent(href.split('?')[0].replace('/book/', ''))),
-    );
+    const guestStarts = hrefs.map(slotStart);
     expect(guestStarts.length).toBeGreaterThan(0);
     guestStarts.forEach((start) =>
-      expect(formatDateInTimeZone(start, 'Pacific/Auckland')).toBe(bookingDay),
+      expect(formatDateInTimeZone(start, GUEST_TIME_ZONE)).toBe(bookingDay),
     );
 
     // ...while the host-local answer for the same date runs past the guest's midnight — the
@@ -403,6 +360,6 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     const hostStarts = await hostDayResponse.json();
     expect(hostStarts.length).toBeGreaterThan(0);
     const lastHostStart = new Date(hostStarts[hostStarts.length - 1]);
-    expect(formatDateInTimeZone(lastHostStart, 'Pacific/Auckland')).not.toBe(bookingDay);
+    expect(formatDateInTimeZone(lastHostStart, GUEST_TIME_ZONE)).not.toBe(bookingDay);
   });
 });

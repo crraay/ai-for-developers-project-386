@@ -36,6 +36,6 @@ public final class BookingRules {
 
   /** True when {@code instant} lies exactly on the slot grid. */
   public static boolean isAligned(Instant instant) {
-    return instant.getEpochSecond() % SLOT_GRID.toSeconds() == 0;
+    return instant.getNano() == 0 && instant.getEpochSecond() % SLOT_GRID.toSeconds() == 0;
   }
 }

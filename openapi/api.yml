@@ -231,7 +231,7 @@ paths:
               $ref: '#/components/schemas/UpdateBookingTypeRequest'
     delete:
       operationId: deleteBookingType
-      summary: Delete a booking type
+      summary: Delete a booking type, hiding it when bookings still reference it
       parameters:
         - name: id
           in: path
@@ -241,7 +241,7 @@ paths:
             format: int64
       responses:
         '204':
-          description: Type deleted
+          description: Type deleted, or hidden when existing bookings still reference it so their label survives
         '404':
           description: No booking type with this id
           content:

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout } from 'node:timers/promises';
 
 const BACKEND_URL = 'http://localhost:8080/api/ping';
-const FRONTEND_URL = 'http://localhost:4200';
+const FRONTEND_URL = 'http://localhost:5173';
 const BACKEND_TIMEOUT_MS = 120_000;
 const FRONTEND_TIMEOUT_MS = 120_000;
 

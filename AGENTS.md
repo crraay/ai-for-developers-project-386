@@ -4,7 +4,7 @@
 
 ### Commits
 
-Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) — enforced by `commitlint.config.mjs` (commit-msg hk hook) and CI (`commitlint` runs over the pushed range).
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org) — enforced by `commitlint.config.mjs` (commit-msg hk hook) and CI (`commitlint` runs over the pushed range). PR titles follow the same ruleset: `pr-title.yml` pipes the title through `commitlint`, so a title without `type(scope):` fails CI even when every commit is fine. Inside an `/oc` run `gh` is unauthenticated (writes go through the action's App token), so report a title or description that a human must edit instead of looking for a credential.
 
 Commits and PRs reference their ticket. `Refs #<n>` in the commit body points at the issue the change works on; `Closes #<n>` in the PR description closes it once the acceptance criteria are met; `Part of #<map>` covers work bundled under a decision map (see `docs/agents/issue-tracker.md`). An implementation commit without a referenceable issue is an exception — raise it with a human before merging.
 
@@ -20,9 +20,19 @@ One-time per clone (after `mise install`): `mise run setup` installs the root, f
 
 `mise run check` runs every check (lint, tests, spec lint, repo hygiene, generated-code freshness, browser test) and must pass before a change is done; CI runs the same command on every push. There is no pre-push hook — run it yourself. `mise run fix` applies the safe autofixes.
 
-Generated files — `openapi/api.yml` and `frontend/src/app/api/` — are never edited by hand. The contract source is `typespec/main.tsp` (ADR-0008): change it, run `mise run generate` (TypeSpec → `openapi/api.yml` → Angular client), and commit the regenerated output; CI fails on stale output.
+Stop a manually started `docker compose up` before running the gate: the backend tests boot a real Micronaut server on **8080**, so a running Compose backend makes every backend test fail with `Address already in use` (the browser test starts and tears down its own stack).
+
+Generated files — `openapi/api.yml` and `frontend/src/api/` — are never edited by hand. The contract source is `typespec/main.tsp` (ADR-0008): change it, run `mise run generate` (TypeSpec → `openapi/api.yml` → React client), and commit the regenerated output; CI fails on stale output.
 
 Lint rules are never disabled to get a change through. Exceptions are narrow (one path, one rule), carry a written reason, and need a human decision.
+
+### Pull request review
+
+Every non-draft PR authored by the repository owner or `opencode-agent[bot]` is reviewed automatically by `opencode-review.yml` (release-please, dependabot and fork PRs are skipped): the agent reads the diff, the linked ticket and CI, then posts one comment. The contract it follows is `docs/agents/review.md`. The review is advisory — it is not a required check, a failed run does not fail the PR, and nothing it says is an approval. Unlike an `/oc` run, this one gets a read-only `GH_TOKEN` (so `gh pr view|diff|checks` work) and a read-only shell whitelist: it cannot edit, commit or approve anything. A new comment is posted on every push (#55).
+
+### Asking the agent in a comment
+
+An `/oc` or `/opencode` mention starts the agent on an issue, a pull request, or a line of a pull request's diff. A comment on a line gets the file, line and diff hunk; the answer is moved from the action's top-level comment into that review thread, so the discussion stays under the line. See `.github/workflows/opencode.yml` and #61.
 
 ### Running the application
 
@@ -32,7 +42,7 @@ The fastest way to run the full stack from a clean clone is Docker Compose:
 docker compose up --build
 ```
 
-- Frontend: http://localhost:4200
+- Frontend: http://localhost:5173
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
 - PostgreSQL: localhost:5434
 

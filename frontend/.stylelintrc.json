@@ -3,8 +3,6 @@
   "rules": {
     "selector-class-pattern": null,
     "scss/dollar-variable-pattern": null,
-    "no-empty-source": null,
-    "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["host", "host-context"] }],
-    "selector-pseudo-element-no-unknown": [true, { "ignorePseudoElements": ["ng-deep"] }]
+    "no-empty-source": null
   }
 }

@@ -26,13 +26,15 @@ steps {
   ["prettier"] {
     glob = List(
       "frontend/**/*.ts",
+      "frontend/**/*.tsx",
+      "frontend/**/*.mts",
       "frontend/**/*.html",
       "frontend/**/*.scss",
       "frontend/**/*.json",
       "frontend/**/*.md"
     )
     // generated client: formatted by `npm run generate:api`, never by hand
-    exclude = List("frontend/src/app/api/**")
+    exclude = List("frontend/src/api/**")
     check = "prettier --check {{files}}"
     fix = "prettier --write {{files}}"
   }

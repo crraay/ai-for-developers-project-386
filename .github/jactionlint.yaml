@@ -1,0 +1,17 @@
+# Lint exceptions. Repo rule (docs/adr/0004-quality-gates.md): one path, one
+# rule, a written reason, a human decision; security-relevant ones expire.
+ignores:
+  # /oc is asked for in a comment on an issue, a PR or a code line;
+  # issue_comment and pull_request_review_comment are the triggers that carry
+  # the comment body. The workflow keeps GITHUB_TOKEN read-only (permissions: {}
+  # at workflow level, contents/issues read and id-token write in the job) and
+  # the OpenCode action refuses actors without admin/write; the remaining
+  # exposure is the App token and the model key, which is why the entry expires
+  # and must be renewed deliberately.
+  - rule: dangerous-triggers
+    file: .github/workflows/opencode.yml
+    reason: >-
+      issue_comment and pull_request_review_comment are the triggers that carry
+      the /oc comment; the workflow's own token cannot write, and the action
+      checks that the actor has admin or write access to the repository.
+    expires: "2027-05-13"

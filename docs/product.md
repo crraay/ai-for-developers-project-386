@@ -93,7 +93,9 @@ invariant).
 The host manages the booking types the guest picks from, at
 `/host/booking-types`: create, edit (title, description, duration, sort order,
 visible/hidden), and delete. Hiding a type removes it from the guest picker
-without touching past bookings; deleting is permanent for the row itself.
+without touching past bookings. Deleting permanently removes an unused type; a
+type that existing bookings reference is hidden instead, so those bookings keep
+their label.
 The CRUD surface is `GET/POST /api/host/booking-types` and
 `PUT/DELETE /api/host/booking-types/{id}`; the guest sees only the public
 `GET /api/booking-types` (visible rows).

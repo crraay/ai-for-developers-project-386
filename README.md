@@ -10,9 +10,11 @@ How it should work: https://files.hexlet.app/a/2ipc5m
 
 ## Tech Stack
 
-Angular (frontend) · Java 25 + Micronaut (backend) · PostgreSQL · Docker Compose
+React 19 + Vite (frontend) · Java 25 + Micronaut (backend) · PostgreSQL · Docker Compose
 
-See [ADR-0001](docs/adr/0001-tech-stack.md) for why this stack was chosen.
+See [ADR-0001](docs/adr/0001-tech-stack.md) for why this stack was chosen, and
+[ADR-0009](docs/adr/0009-react-frontend.md) for the frontend move from Angular to
+React.
 
 
 
@@ -45,7 +47,7 @@ Run the whole stack:
 docker compose up --build
 ```
 
-- Frontend: http://localhost:4200
+- Frontend: http://localhost:5173
 - Backend API: http://localhost:8080 (`GET /api/ping` → `pong`)
 - Swagger UI: http://localhost:8080/swagger-ui/ (raw spec: `/swagger/call-calendar-0.1.yml`)
 - PostgreSQL: localhost:5434 (`postgres`/`postgres`, db `callcalendar`; 5432 is used by a local PostgreSQL install on this machine)
@@ -72,7 +74,7 @@ On Render, the managed Postgres survives service restarts, but the free instance
 What a guest books is one of the **booking types** the host has set up — each
 type carries its own title, description, and duration, and the guest picks one
 instead of choosing a raw duration. The host manages them at
-**http://localhost:4200/host/booking-types**; the two seeded types on a fresh
+**http://localhost:5173/host/booking-types**; the two seeded types on a fresh
 database are:
 
 | Order | Title       | Duration |
@@ -82,7 +84,7 @@ database are:
 
 A guest flow that uses both:
 
-1. Open **http://localhost:4200/book**, pick a day, and choose **Deep dive**
+1. Open **http://localhost:5173/book**, pick a day, and choose **Deep dive**
    from the *Booking type* picker.
 2. Click any of the time slots — each one carries the chosen `bookingTypeId`,
    so picking the same slot with **Quick chat** would show 30-minute windows
@@ -147,13 +149,16 @@ Free-tier caveats:
 - The free Postgres instance expires 30 days after creation (**2026-12-10**) and
   must then be recreated (data is not preserved).
 - Render suffixes service URLs (`-es6x`, `-55jr`). If a service is recreated,
-  update the URLs in `frontend/src/environments/environment.prod.ts`, the
+  update the URLs in `frontend/.env.production`, the
   `CORS_ALLOWED_ORIGINS` env var of the backend service, and
   `.github/workflows/deploy.yml`.
-- The frontend's API URL is baked in at build time via Angular `fileReplacements`
-  (`environment.prod.ts`); the backend's allowed origin comes from the
-  `CORS_ALLOWED_ORIGINS` Render env var (defaulting to `http://localhost:4200`
-  locally).
+- The frontend's API URL is baked in at build time by the Vite mode
+  (`frontend/.env.production` → `VITE_API_BASE_URL`); the backend's allowed origin
+  comes from the `CORS_ALLOWED_ORIGINS` Render env var (defaulting to
+  `http://localhost:5173` locally).
+- The static site's build command and publish directory live in the Render
+  dashboard, not in the repo: build with `npm ci && npm run build` in
+  `frontend/` and publish `frontend/dist`.
 
 
 
@@ -194,11 +199,11 @@ Run individual test suites locally:
 
 ```bash
 cd backend && mise exec -- ./gradlew test   # JUnit 5 + Testcontainers PostgreSQL
-cd frontend && mise exec -- npm test -- --watch=false   # Vitest
+cd frontend && mise exec -- npm test -- --run   # Vitest + Testing Library + MSW
 ```
 
 The frontend never calls the API through hand-written URLs: the typed client in
-`frontend/src/app/api/` is generated from `openapi/api.yml`, which is compiled
+`frontend/src/api/` is generated from `openapi/api.yml`, which is compiled
 from the TypeSpec contract in `typespec/` with one command
 (`mise run generate`) — see
 [ADR-0008](docs/adr/0008-typespec-contract-source.md). The earlier code-first

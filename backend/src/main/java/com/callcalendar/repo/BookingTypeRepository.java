@@ -19,6 +19,9 @@ import javax.sql.DataSource;
 @Singleton
 public class BookingTypeRepository {
 
+  /** SQLState PostgreSQL reports when deleting a row still referenced by a foreign key. */
+  private static final String FOREIGN_KEY_VIOLATION = "23503";
+
   private static final String COLUMNS =
       "id, title, description, duration_minutes, sort_order, active";
 
@@ -126,12 +129,27 @@ public class BookingTypeRepository {
     }
   }
 
+  /**
+   * Deletes the type when no booking references it. When bookings still reference it, the FK
+   * rejects the delete; the type is hidden instead so existing bookings keep their label while new
+   * guests stop seeing it. Returns false when no such row exists.
+   */
   public boolean deleteById(long id) {
-    try (Connection connection = dataSource.getConnection();
-        PreparedStatement statement =
-            connection.prepareStatement("DELETE FROM booking_type WHERE id = ?")) {
-      statement.setLong(1, id);
-      return statement.executeUpdate() > 0;
+    try (Connection connection = dataSource.getConnection()) {
+      try (PreparedStatement statement =
+          connection.prepareStatement("DELETE FROM booking_type WHERE id = ?")) {
+        statement.setLong(1, id);
+        return statement.executeUpdate() > 0;
+      } catch (SQLException e) {
+        if (!FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          throw new IllegalStateException("failed to delete booking_type", e);
+        }
+      }
+      try (PreparedStatement statement =
+          connection.prepareStatement("UPDATE booking_type SET active = FALSE WHERE id = ?")) {
+        statement.setLong(1, id);
+        return statement.executeUpdate() > 0;
+      }
     } catch (SQLException e) {
       throw new IllegalStateException("failed to delete booking_type", e);
     }

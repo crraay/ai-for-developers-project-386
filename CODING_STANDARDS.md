@@ -7,12 +7,11 @@ tooling could check is absent by design.
 
 ## Tests
 
-- **Form interactions flush.** A spec that drives a form input awaits
-  `fixture.whenStable()` before dispatching the `input` event and again after.
-  NgModel wires its value-accessor listener on a microtask (an earlier dispatch
-  silently hits a no-op handler) and propagates view→model asynchronously, so
-  without both flushes the model reads stale. Reference implementation: `fillField`
-  in `frontend/src/app/pages/book-form-page/book-form-page.spec.ts`.
+- **Form interactions go through user-event.** A spec that types into a form
+  field uses `userEvent.type`, never a direct `input.value = …` assignment: React
+  tracks the previous value on the DOM node, so assigning it directly suppresses
+  the `change` event and the controlled input stays stale. Reference
+  implementation: `frontend/src/pages/book-form-page/BookFormPage.spec.tsx`.
 - **Fixture secrets are non-hex.** Fake tokens and keys in tests are placeholder
   text (`test-cancellation-token-000000`), never 32-char hex — betterleaks flags
   hex-shaped strings as `generic-api-key`, and the fix belongs in the fixture, not
