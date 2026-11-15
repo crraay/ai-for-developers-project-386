@@ -1,17 +1,27 @@
 name: opencode
 
-# A comment that mentions /oc or /opencode asks the agent to explain the
-# thread, fix the issue, or review code. The comment body is used as data
-# only: it is never interpolated into a shell command.
+# A comment that mentions /oc or /opencode — on an issue, a pull request, or a
+# line of its diff — asks the agent to explain the thread, fix the issue, or
+# review code. The comment body is used as data only: it is never interpolated
+# into a shell command.
 #
-# `issue_comment` is a dangerous trigger by design: it runs in the context of
-# the default branch with the job's secrets and token, and anyone who can
-# comment can start it. It is the only trigger that carries the comment, so the
-# finding is accepted with one scoped, expiring exception in
+# `issue_comment` and `pull_request_review_comment` are dangerous triggers by
+# design: they run in the context of the default branch with the job's secrets
+# and token, and anyone who can comment can start them. Both carry the comment,
+# so the finding is accepted with one scoped, expiring exception in
 # .github/jactionlint.yaml. The mitigations live here: GITHUB_TOKEN cannot
-# write, secrets are read only by the agent step, the OpenCode action refuses
-# actors without admin or write access, and no pull-request code is checked
-# out or executed.
+# write (the boundary step reads with it), the model key is read only by the
+# agent step, and the OpenCode action refuses actors without admin or write
+# access before it checks out the PR head, so only a trusted actor can put PR
+# code in front of the agent. The last step exchanges a fresh OIDC token for
+# the App token because the action revokes its own in `finally`.
+#
+# A comment on a code line is a message in that line's thread, not in the PR
+# conversation. The pinned action already gives the agent the file, line and
+# diff hunk (`getReviewCommentContext`), but answers with
+# `issues.createComment`, so the last step moves the answer into the thread and
+# deletes the top-level copy. That is a workaround for the action's transport,
+# not its prompt; #54 replaces both.
 #
 # No human is present to answer a permission prompt. A permission that resolves
 # to `ask` blocks the tool call until the job timeout, and the run ends without
@@ -24,7 +34,7 @@ on:
   pull_request_review_comment:
     types: [created]
 
-# Deny every token permission by default; the job asks for the two it needs.
+# Deny every token permission by default; the job asks for the three it needs.
 permissions: {}
 
 # One agent run per issue or pull request. A second /oc queues behind the
@@ -47,6 +57,7 @@ jobs:
     permissions:
       contents: read # checkout of this repository
       id-token: write # OIDC exchange for the OpenCode App token
+      issues: read # list the PR comments the action answers with
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -63,10 +74,31 @@ jobs:
       - name: Provide the local config's secret file placeholder
         run: touch .render-api-key
 
+      # The action answers a review comment as a top-level PR comment: at the
+      # pinned SHA `createComment` calls `issues.createComment`, not
+      # `pulls.createReplyForReviewComment`. Remember the newest comment before
+      # the run so the answer posted by this run can be told apart from older
+      # bot comments. Read-only: the job token lists, the App token writes.
+      # A failure here must not stop the agent: the last step treats a missing
+      # boundary as "leave the answer where the action put it".
+      - name: Remember the newest PR comment
+        if: github.event_name == 'pull_request_review_comment'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          tmp="${RUNNER_TEMP:-/tmp}"
+          last=$(gh api --paginate "repos/$REPO/issues/$PR/comments" --jq '.[].id' | sort -n | tail -n 1)
+          printf '%s\n' "${last:-0}" > "$tmp/comment-boundary"
+
       # The App token from the OIDC exchange carries contents/issues/
       # pull-requests write; this workflow's GITHUB_TOKEN stays read-only, and
       # the action refuses actors without admin or write access to the repo.
       - name: Run OpenCode
+        id: agent
         uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a # latest, 2026-11-13
         with:
           model: opencode-go/deepseek-v4.1-flash
@@ -77,3 +109,81 @@ jobs:
           # runner. Shape is opencode's V1 `permission` object (the 1.19.x
           # binary the action installs), merged over opencode.json.
           OPENCODE_PERMISSION: '{"external_directory":"deny","question":"deny"}'
+
+      # Move the answer into the line's thread. A reply needs a write-capable
+      # token, and the job's GITHUB_TOKEN stays read-only, so exchange a fresh
+      # OIDC token for the same App token the action used. The action revokes
+      # its own token in `finally`, before this step, so it cannot be reused.
+      # Reply first, delete second: a failure leaves the action's top-level
+      # comment in place rather than losing the answer. Run only after the
+      # agent succeeded, or a lone auto-review comment could be mistaken for
+      # the answer when the run posted none.
+      - name: Answer in the review thread
+        if: ${{ !cancelled() && steps.agent.outcome == 'success' && github.event_name == 'pull_request_review_comment' }}
+        env:
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          BOT: opencode-agent[bot]
+        run: |
+          set -euo pipefail
+          tmp="${RUNNER_TEMP:-/tmp}"
+          boundary_file="$tmp/comment-boundary"
+          if [ ! -s "$boundary_file" ]; then
+            echo "No boundary from this run; leaving the answer where it is."
+            exit 0
+          fi
+          boundary=$(cat "$boundary_file")
+
+          oidc_url="${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
+          oidc_request_token="${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
+          if [ -z "$oidc_url" ] || [ -z "$oidc_request_token" ]; then
+            echo "::error::OIDC is not available; id-token: write is required."
+            exit 1
+          fi
+          oidc=$(curl -fsS \
+            -H "Authorization: bearer $oidc_request_token" \
+            "$oidc_url&audience=opencode-github-action" | jq -r .value)
+          if [ -z "$oidc" ] || [ "$oidc" = null ]; then
+            echo "::error::OIDC token request failed."
+            exit 1
+          fi
+          app=$(curl -fsS -X POST \
+            -H "Authorization: Bearer $oidc" \
+            https://api.opencode.ai/exchange_github_app_token | jq -r .token)
+          if [ -z "$app" ] || [ "$app" = null ]; then
+            echo "::error::OpenCode App token exchange failed."
+            exit 1
+          fi
+          echo "::add-mask::$app"
+          export GH_TOKEN="$app"
+
+          # Only move when exactly one new bot comment exists. The auto-review
+          # posts as the same bot under a separate concurrency group: if one of
+          # its comments lands in this window, picking the newest would put the
+          # review in the thread and leave the real answer behind.
+          answer_ids=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq ".[] | select(.id > $boundary) | select(.user.login == \"$BOT\") | .id" \
+            | sort -n)
+          if [ -z "$answer_ids" ]; then
+            echo "The run posted no answer to move."
+            exit 0
+          fi
+          count=$(printf '%s\n' "$answer_ids" | wc -l | tr -d ' ')
+          if [ "$count" -ne 1 ]; then
+            echo "::warning::Found $count new bot comments after the boundary; leaving them in place."
+            exit 0
+          fi
+          answer_id=$answer_ids
+
+          gh api "repos/$REPO/issues/comments/$answer_id" --jq .body > "$tmp/answer.md"
+          if [ ! -s "$tmp/answer.md" ]; then
+            echo "The answer is empty; leaving it where it is."
+            exit 0
+          fi
+          jq -n --rawfile body "$tmp/answer.md" '{body: $body}' > "$tmp/answer.json"
+          gh api --method POST \
+            "repos/$REPO/pulls/$PR/comments/$COMMENT_ID/replies" \
+            --input "$tmp/answer.json" > /dev/null
+          gh api --method DELETE "repos/$REPO/issues/comments/$answer_id" > /dev/null
+          echo "Moved the answer into the review thread."
