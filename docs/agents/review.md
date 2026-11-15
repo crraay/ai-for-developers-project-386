@@ -33,11 +33,13 @@ the `code-review` skill; when the skill and this file disagree, this file wins.
 - CI: `gh pr checks <n>`, and `gh run view <id>` when a check failed.
 
 Shell access is a read-only whitelist: `git status|log|show|merge-base|rev-parse`
-and `gh pr view|diff|checks`, `gh issue view`, `gh run view`. Nothing else runs,
-and `edit`, `question`, `webfetch`, `websearch` and `task` are denied. Redirects
-are denied as well, so a command that needs `>`, `<` or `|` will not run; keep
-`--jq` filters free of `>` and `<`, which the guard cannot tell from a
-redirect. There is no comment or approval tool — report, do not act.
+and `gh pr view|diff|checks`, `gh issue view`, `gh run view`. Nothing else runs;
+`edit`, `question`, `webfetch`, `websearch` and `task` are denied, and so is
+reading a `.env` file — the base policy would prompt for those, and a prompt
+blocks the run. Redirects are denied as well, so a command that needs `>`, `<`
+or `|` will not run; keep `--jq` filters free of `>` and `<`, which the guard
+cannot tell from a redirect. There is no comment or approval tool — report, do
+not act.
 
 ## Axes
 
