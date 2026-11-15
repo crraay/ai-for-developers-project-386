@@ -180,6 +180,9 @@ class BookingFlowTest {
     Instant misaligned = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0).plusSeconds(60);
     assertStatus(409, HttpRequest.POST("/api/bookings", booking(misaligned)));
 
+    Instant subSecondOffset = slotsFor(nextWeekday(), QUICK_CHAT_ID).get(0).plusNanos(1);
+    assertStatus(409, HttpRequest.POST("/api/bookings", booking(subSecondOffset)));
+
     assertStatus(409, HttpRequest.POST("/api/bookings", booking(nextWeekdayBeyondHorizonAt9())));
     assertStatus(
         409, HttpRequest.POST("/api/bookings", booking(Instant.parse("2020-01-01T09:00:00Z"))));
