@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 import {
   addDaysToDateString,
@@ -9,10 +9,38 @@ import {
 } from './dates';
 
 const API = 'http://localhost:8080';
+const GUEST_TIME_ZONE = 'Pacific/Auckland';
 
 /** The instant a slot link points at: `/book/<ISO instant>?bookingTypeId=<id>`. */
 const slotStart = (href: string) =>
   new Date(decodeURIComponent(href.split('?')[0].replace('/book/', '')));
+
+/** The slots request the picker makes for `day`, named so a timeout says what never arrived. */
+const slotsUrl = (day: string, bookingTypeId: number) =>
+  `${API}/api/slots?date=${day}&bookingTypeId=${bookingTypeId}&timeZone=${GUEST_TIME_ZONE}`;
+
+/**
+ * Waits until the first slot link belongs to `day` in the guest's zone, then returns it.
+ * The href holds a UTC instant, so the day it belongs to is that instant in the guest's
+ * zone, never a substring of the href: a slot at the guest's midnight (00:00 in Auckland is
+ * 11:00Z the day before) does not contain the picked date. Both waits carry the request
+ * they are waiting for, because that is the failure a reader has to diagnose.
+ */
+const firstSlotOn = async (page: Page, day: string, bookingTypeId: number) => {
+  const message = `no slot on ${day}; waiting for ${slotsUrl(day, bookingTypeId)}`;
+  const slot = page.locator('.book-page__slot-link').first();
+  await expect(slot, message).toBeVisible({ timeout: 10_000 });
+  await expect
+    .poll(
+      async () => {
+        const href = await slot.getAttribute('href');
+        return href ? formatDateInTimeZone(slotStart(href), GUEST_TIME_ZONE) : null;
+      },
+      { timeout: 10_000, message },
+    )
+    .toBe(day);
+  return slot;
+};
 
 test('guest books a chosen meeting type and the host sees it', async ({ page }) => {
   test.setTimeout(60_000);
@@ -227,13 +255,11 @@ test('a second guest racing for the same slot is refused and one booking survive
   const dayInput = page.getByLabel('Day');
   await dayInput.fill(bookingDay);
   await dayInput.press('Tab');
-  const slotLink = page.locator('.book-page__slot-link').first();
-  await expect(slotLink).toBeVisible({ timeout: 10_000 });
-  // Wait for the chosen day to land in the hrefs so a stale slot from the default day is
-  // never taken for the racing booking.
-  await expect(slotLink).toHaveAttribute('href', new RegExp(bookingDay));
+  // Wait for the chosen day so a stale slot from the default day is never taken for the
+  // racing booking.
+  const slotLink = await firstSlotOn(page, bookingDay, typeId);
   const href = (await slotLink.getAttribute('href')) ?? '';
-  const start = decodeURIComponent(href.split('?')[0].replace('/book/', ''));
+  const start = slotStart(href).toISOString();
 
   // Guest A takes it against the real server.
   const first = await page.request.post(`${API}/api/bookings`, {
@@ -259,7 +285,10 @@ test('a second guest racing for the same slot is refused and one booking survive
 
   // ...and the server still holds exactly one booking for that interval.
   const bookings = await (await page.request.get(`${API}/api/bookings`)).json();
-  const sameSlot = bookings.filter((booking: { start: string }) => booking.start === start);
+  const startedAt = slotStart(href).getTime();
+  const sameSlot = bookings.filter(
+    (booking: { start: string }) => new Date(booking.start).getTime() === startedAt,
+  );
   expect(sameSlot).toHaveLength(1);
   expect(sameSlot[0].guestEmail).toBe('first@example.com');
 });
@@ -275,7 +304,7 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     // internally: CDP emulation. The browser then reports Auckland from `Intl` for real, and the
     // server does the actual work - no API response is faked.
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Emulation.setTimezoneOverride', { timezoneId: 'Pacific/Auckland' });
+    await cdp.send('Emulation.setTimezoneOverride', { timezoneId: GUEST_TIME_ZONE });
 
     const settingsResponse = await page.request.get(`${API}/api/host-settings`);
     expect(settingsResponse.ok()).toBeTruthy();
@@ -304,24 +333,8 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     await dayInput.fill(bookingDay);
     await dayInput.press('Tab');
     const slotLinks = page.locator('.book-page__slot-link');
-    await expect(slotLinks.first()).toBeVisible({ timeout: 10_000 });
-    // Wait for the chosen day to land in the hrefs so slots from the default day are never
-    // judged against this date. The href holds a UTC instant, so the day it belongs to is
-    // that instant in the guest's zone, not a substring of the href: a slot at the guest's
-    // midnight (00:00 in Auckland is 11:00Z the day before) never contains the picked date.
-    await expect
-      .poll(
-        async () => {
-          const href = await slotLinks.first().getAttribute('href');
-          return href ? formatDateInTimeZone(slotStart(href), 'Pacific/Auckland') : null;
-        },
-        {
-          timeout: 10_000,
-          message: `no slot link on ${bookingDay}; waiting for ${API}/api/slots?date=${bookingDay}&bookingTypeId=${typeId}`,
-        },
-      )
-      .toBe(bookingDay);
-    expect(requestedZones).toContain('Pacific/Auckland');
+    await firstSlotOn(page, bookingDay, typeId);
+    expect(requestedZones).toContain(GUEST_TIME_ZONE);
 
     // Every start offered under the picked date falls on that date in the guest's calendar...
     const hrefs = await slotLinks.evaluateAll((links) =>
@@ -330,7 +343,7 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     const guestStarts = hrefs.map(slotStart);
     expect(guestStarts.length).toBeGreaterThan(0);
     guestStarts.forEach((start) =>
-      expect(formatDateInTimeZone(start, 'Pacific/Auckland')).toBe(bookingDay),
+      expect(formatDateInTimeZone(start, GUEST_TIME_ZONE)).toBe(bookingDay),
     );
 
     // ...while the host-local answer for the same date runs past the guest's midnight — the
@@ -342,6 +355,6 @@ test.describe('guest whose calendar leads the host (issue #1)', () => {
     const hostStarts = await hostDayResponse.json();
     expect(hostStarts.length).toBeGreaterThan(0);
     const lastHostStart = new Date(hostStarts[hostStarts.length - 1]);
-    expect(formatDateInTimeZone(lastHostStart, 'Pacific/Auckland')).not.toBe(bookingDay);
+    expect(formatDateInTimeZone(lastHostStart, GUEST_TIME_ZONE)).not.toBe(bookingDay);
   });
 });
