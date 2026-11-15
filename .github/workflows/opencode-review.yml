@@ -131,6 +131,11 @@ jobs:
           # pushed by the action — and the web is denied because the review reads
           # the PR, not links pasted into it.
           #
+          # `read` needs a rule of its own because the base policy every agent
+          # starts with *asks* on `read` of `*.env` and `*.env.*`. One env lookup
+          # then blocks the run until the timeout, which is how #63 died, and a
+          # secret has no place in a public review comment anyway.
+          #
           # `git diff` is deliberately absent. Given two paths outside the
           # worktree it enters no-index mode by itself, with no flag to deny, and
           # then reads files `external_directory` is meant to keep out; the patch
@@ -141,6 +146,11 @@ jobs:
           OPENCODE_PERMISSION: |
             {
               "edit": "deny",
+              "read": {
+                "*": "allow",
+                "*.env": "deny",
+                "*.env.*": "deny"
+              },
               "external_directory": "deny",
               "question": "deny",
               "task": "deny",
